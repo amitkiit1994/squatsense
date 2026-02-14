@@ -164,6 +164,19 @@ def run_decision_and_report(
         "<li><b>Depth/Trunk/Balance/Form OK</b>: simple checks based on calibrated thresholds.</li>"
         "</ul>"
     )
+    col_labels = [
+        "Rep",
+        "Knee flexion (deg)",
+        "Depth OK",
+        "Hip angle (deg)",
+        "Trunk angle (deg)",
+        "Trunk OK",
+        "COM offset (foot lengths)",
+        "Balance OK",
+        "Form OK",
+        "Speed proxy",
+        "Duration (s)",
+    ]
     report_lines.append(
         "<table border='1'><tr>"
         "<th>Rep</th>"
@@ -180,21 +193,23 @@ def run_decision_and_report(
         "</tr>"
     )
     for r in reps:
-        report_lines.append(
-            "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".format(
-                r.get("rep", ""),
-                _fmt(r.get("knee_flexion_deg")),
-                _fmt_bool(r.get("depth_ok")),
-                _fmt(r.get("hip_angle_deg")),
-                _fmt(r.get("trunk_angle_deg")),
-                _fmt_bool(r.get("trunk_ok")),
-                _fmt(r.get("com_offset_norm")),
-                _fmt_bool(r.get("balance_ok")),
-                _fmt_bool(r.get("form_ok")),
-                _fmt(r.get("speed_proxy")),
-                _fmt(r.get("duration_sec")),
-            )
+        cells = [
+            r.get("rep", ""),
+            _fmt(r.get("knee_flexion_deg")),
+            _fmt_bool(r.get("depth_ok")),
+            _fmt(r.get("hip_angle_deg")),
+            _fmt(r.get("trunk_angle_deg")),
+            _fmt_bool(r.get("trunk_ok")),
+            _fmt(r.get("com_offset_norm")),
+            _fmt_bool(r.get("balance_ok")),
+            _fmt_bool(r.get("form_ok")),
+            _fmt(r.get("speed_proxy")),
+            _fmt(r.get("duration_sec")),
+        ]
+        tds = "".join(
+            f'<td data-label="{label}">{val}</td>' for label, val in zip(col_labels, cells)
         )
+        report_lines.append(f"<tr>{tds}</tr>")
     report_lines.append("</table></body></html>")
 
     report_path = os.path.join(output_dir, "report.html")

@@ -302,6 +302,90 @@ def _page(title: str, body: str, footer: str | None = None) -> str:
         border: 1px solid var(--border);
         background: #000;
       }}
+      .report-embed table {{
+        width: 100%;
+        font-size: 14px;
+      }}
+      .report-embed img {{
+        max-width: 100%;
+        height: auto;
+      }}
+      /* Mobile: report stacks vertically, no horizontal scroll */
+      @media (max-width: 640px) {{
+        .wrap {{
+          padding: 20px 16px 0;
+        }}
+        h1 {{
+          font-size: 22px;
+        }}
+        .card {{
+          padding: 16px;
+          margin-bottom: 16px;
+        }}
+        .report-embed {{
+          padding: 12px;
+        }}
+        .report-embed h1 {{ font-size: 18px; margin-top: 0; }}
+        .report-embed h2 {{ font-size: 16px; margin-top: 16px; margin-bottom: 8px; }}
+        .report-embed h3 {{ font-size: 14px; margin-top: 12px; margin-bottom: 6px; }}
+        .report-embed p, .report-embed li {{
+          font-size: 14px;
+          line-height: 1.5;
+          margin-bottom: 8px;
+        }}
+        .report-embed ul {{ padding-left: 20px; margin-bottom: 12px; }}
+        .report-embed table, .report-embed thead, .report-embed tbody, .report-embed tr, .report-embed th, .report-embed td {{
+          display: block;
+        }}
+        .report-embed thead {{ display: none; }}
+        .report-embed tr {{
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 12px;
+          margin-bottom: 12px;
+          background: var(--panel-2);
+        }}
+        .report-embed td {{
+          border: none;
+          padding: 6px 0;
+          display: flex;
+          justify-content: space-between;
+          align-items: baseline;
+          gap: 12px;
+        }}
+        .report-embed td::before {{
+          content: attr(data-label);
+          font-weight: 600;
+          color: var(--muted);
+          flex-shrink: 0;
+        }}
+        .report-embed td:first-of-type::before {{
+          color: var(--accent-soft);
+        }}
+        .btn-group {{
+          flex-direction: column;
+          width: 100%;
+        }}
+        .btn-group .btn {{
+          width: 100%;
+        }}
+        input[type="file"] {{
+          max-width: 100%;
+        }}
+        .slider-row {{
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 8px;
+        }}
+        .slider-row input[type="range"] {{
+          max-width: 100%;
+          width: 100%;
+        }}
+        .footer {{
+          padding: 20px 0 32px;
+          font-size: 13px;
+        }}
+      }}
     </style>
   </head>
   <body>

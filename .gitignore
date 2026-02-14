@@ -1,0 +1,12 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+outputs/*.json
+outputs/*.mp4
+outputs/*.png
+outputs/*.html
+outputs/pose_landmarker*.task
+outputs/**/
+uploads/
+*.egg-info/

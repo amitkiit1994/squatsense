@@ -67,6 +67,34 @@ and upload quality from the UI controls to balance latency vs accuracy.
 Reports are rendered inline on the homepage after each session (no report
 storage for the web UI).
 
+## How to run the full app in production (squatsense.ai)
+
+**Recommended:** Deploy the **full app** (video upload + live analysis) on **Railway** and point **squatsense.ai** there. No 250MB limit; WebSockets and uploads work.
+
+### Option A: Railway (recommended)
+
+1. **Sign up:** [railway.app](https://railway.app) (GitHub login).
+2. **New project → Deploy from GitHub:** Connect `amitkiit1994/squatsense` (or your fork). Railway will detect the `Dockerfile` and build the full app.
+3. **Settings → Networking:** Enable "Public networking", copy the generated URL (e.g. `https://xxx.up.railway.app`).
+4. **Custom domain:** In the same service, **Settings → Domains → Custom domain**, add `squatsense.ai` (and `www.squatsense.ai` if you want). Railway shows the CNAME target; at your registrar, add a CNAME for `squatsense.ai` (or the record Railway shows for apex).
+5. **Done.** Open https://squatsense.ai — upload and live analysis work.
+
+No env vars required for basic run. For a **Procfile**-style deploy instead of Docker, Railway can also use Nixpacks; the repo’s `Dockerfile` is the most reliable for this stack.
+
+### Option B: Render
+
+1. **New → Web Service**, connect the repo.
+2. **Build:** Docker (uses the repo `Dockerfile`).
+3. **Instance:** Free or paid; free tier may sleep after inactivity.
+4. **Custom domain:** Settings → Custom domain → add `squatsense.ai` and set the DNS records Render shows.
+
+### Option C: Vercel (slim app only)
+
+The repo is also set up for Vercel. Because of Vercel’s 250MB serverless limit, only the **slim app** (`vercel_app.py`) is deployed there: same UI, but **no** video analysis or live WebSocket.
+
+- Deploy: `vercel --prod` or connect the repo in the Vercel dashboard.
+- Use this for a lightweight landing/marketing page, or skip Vercel and use only Railway/Render for the full app at squatsense.ai.
+
 ## Live controls
 
 - **q** — end session (saves keypoints, metrics, and generates report)

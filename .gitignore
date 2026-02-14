@@ -10,3 +10,4 @@ outputs/pose_landmarker*.task
 outputs/**/
 uploads/
 *.egg-info/
+.vercel

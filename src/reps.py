@@ -4,18 +4,23 @@ Uses hip Y for phase and biomechanics-derived metrics (angles, COM proxy).
 """
 from __future__ import annotations
 
+import logging
+import math
 from typing import Any, Optional
 
-import math
 import numpy as np
 
 from .pose import LandmarkIdx
 
-# Calibration frames before enabling rep detection.
-CALIBRATION_FRAMES = 40
-# Minimum knee flexion (deg) for a rep to be considered sufficiently deep.
-MIN_KNEE_FLEXION_DEG = 60.0
-# Additional flexion above baseline required for depth (deg).
+logger = logging.getLogger(__name__)
+
+# Calibration frames before enabling rep detection (standing: knee_flex <= 35°).
+# ~1 s at 10 fps; enough for a stable baseline (trunk, etc.).
+CALIBRATION_FRAMES = 10
+# Knee flexion (deg) for "Depth OK" / form quality: parallel or below (fitness standard).
+# All reps are counted; depth_ok is True only when squat is at least this deep.
+PARALLEL_KNEE_FLEXION_DEG = 90.0
+# Legacy: used only if baseline-based threshold is needed elsewhere.
 DEPTH_DELTA_DEG = 50.0
 # Maximum forward trunk angle allowed from vertical (deg).
 MAX_TRUNK_ANGLE_DEG = 50.0
@@ -23,6 +28,12 @@ MAX_TRUNK_ANGLE_DEG = 50.0
 TRUNK_DELTA_DEG = 20.0
 # Margin beyond foot base where COM is still considered "balanced"
 BALANCE_MARGIN = 0.05
+# Knee flexion upper bound (deg) used to identify standing frames for calibration.
+STANDING_KNEE_FLEXION_MAX = 35.0
+# Default prominence fraction for peak detection (fraction of robust signal range).
+PEAK_PROMINENCE_FRAC = 0.10
+# Median filter window for hip signal smoothing (odd number).
+HIP_SMOOTH_WINDOW = 5
 
 
 def _get_point(
@@ -72,6 +83,26 @@ def _hip_y(keypoints: list[tuple[float, float]]) -> Optional[float]:
     return (lh[1] + rh[1]) / 2.0
 
 
+def _hip_y_norm(keypoints: list[tuple[float, float]]) -> Optional[float]:
+    """Scale-robust hip Y using ankle reference and leg length when available."""
+    hip_y = _hip_y(keypoints)
+    la = _get_point(keypoints, LandmarkIdx.LEFT_ANKLE)
+    ra = _get_point(keypoints, LandmarkIdx.RIGHT_ANKLE)
+    lh = _get_point(keypoints, LandmarkIdx.LEFT_HIP)
+    rh = _get_point(keypoints, LandmarkIdx.RIGHT_HIP)
+    if hip_y is None:
+        return None
+    if la is None or ra is None or lh is None or rh is None:
+        return hip_y
+    ankle_y = (la[1] + ra[1]) / 2.0
+    hip_mid = ((lh[0] + rh[0]) / 2.0, (lh[1] + rh[1]) / 2.0)
+    ankle_mid = ((la[0] + ra[0]) / 2.0, (la[1] + ra[1]) / 2.0)
+    leg_len = math.hypot(hip_mid[0] - ankle_mid[0], hip_mid[1] - ankle_mid[1])
+    if leg_len < 1e-6:
+        return hip_y
+    return (hip_y - ankle_y) / leg_len
+
+
 def _trunk_angle_deg(keypoints: list[tuple[float, float]]) -> Optional[float]:
     """Trunk angle from vertical. 0 = upright, larger = more forward lean."""
     ls = _get_point(keypoints, LandmarkIdx.LEFT_SHOULDER)
@@ -118,6 +149,28 @@ def _hip_angle_deg(keypoints: list[tuple[float, float]]) -> Optional[float]:
     hip_mid = _midpoint(lh, rh)
     knee_mid = _midpoint(lk, rk)
     return _angle_deg(shoulder_mid, hip_mid, knee_mid)
+
+
+def _hip_below_knee(
+    keypoints: list[tuple[float, float]],
+) -> Optional[bool]:
+    """Check if hip is below knee in image coords (side view proxy)."""
+    lh = _get_point(keypoints, LandmarkIdx.LEFT_HIP)
+    rh = _get_point(keypoints, LandmarkIdx.RIGHT_HIP)
+    lk = _get_point(keypoints, LandmarkIdx.LEFT_KNEE)
+    rk = _get_point(keypoints, LandmarkIdx.RIGHT_KNEE)
+    la = _get_point(keypoints, LandmarkIdx.LEFT_ANKLE)
+    ra = _get_point(keypoints, LandmarkIdx.RIGHT_ANKLE)
+    if lh is None or rh is None or lk is None or rk is None:
+        return None
+    hip_mid = ((lh[0] + rh[0]) / 2.0, (lh[1] + rh[1]) / 2.0)
+    knee_mid = ((lk[0] + rk[0]) / 2.0, (lk[1] + rk[1]) / 2.0)
+    margin = 0.0
+    if la is not None and ra is not None:
+        ankle_mid = ((la[0] + ra[0]) / 2.0, (la[1] + ra[1]) / 2.0)
+        leg_len = math.hypot(hip_mid[0] - ankle_mid[0], hip_mid[1] - ankle_mid[1])
+        margin = 0.02 * leg_len
+    return hip_mid[1] > (knee_mid[1] + margin)
 
 
 def _com_proxy(
@@ -262,6 +315,41 @@ def _median(values: list[float]) -> Optional[float]:
     return float(np.median(values))
 
 
+def _median_filter(values: np.ndarray, window: int) -> np.ndarray:
+    if window < 3 or window % 2 == 0:
+        return values
+    half = window // 2
+    out = values.copy()
+    n = len(values)
+    for i in range(n):
+        lo = max(0, i - half)
+        hi = min(n, i + half + 1)
+        out[i] = np.nanmedian(values[lo:hi])
+    return out
+
+
+def _pose_confidence(
+    knee_angle: Optional[float],
+    hip_angle: Optional[float],
+    trunk_angle: Optional[float],
+    com_offset_norm: Optional[float],
+    hip_below_knee: Optional[bool],
+) -> float:
+    """Heuristic confidence based on metric availability (0..1)."""
+    score = 1.0
+    if knee_angle is None:
+        score -= 0.40
+    if hip_angle is None:
+        score -= 0.15
+    if trunk_angle is None:
+        score -= 0.15
+    if com_offset_norm is None:
+        score -= 0.15
+    if hip_below_knee is None:
+        score -= 0.15
+    return max(0.0, min(1.0, score))
+
+
 def _compute_baseline(samples: list[dict[str, Any]]) -> dict[str, Optional[float]]:
     """Compute baseline metrics from calibration samples."""
     knee_flexions = [s.get("knee_flexion_deg") for s in samples if s.get("knee_flexion_deg") is not None]
@@ -291,6 +379,7 @@ def compute_frame_metrics(
             "com_offset_norm": None,
             "balance_ok": None,
             "form_ok": None,
+            "pose_confidence": None,
         }
     knee_angle = _knee_angle_deg(keypoints)
     knee_flexion = (180.0 - knee_angle) if knee_angle is not None else None
@@ -298,18 +387,20 @@ def compute_frame_metrics(
     trunk_angle = _trunk_angle_deg(keypoints)
     com = _com_proxy(keypoints)
     com_offset_norm, balance_ok = _balance_metrics(keypoints, com)
+    hip_below_knee = _hip_below_knee(keypoints)
+    pose_conf = _pose_confidence(knee_angle, hip_angle, trunk_angle, com_offset_norm, hip_below_knee)
 
-    base_knee = baseline.get("knee_flexion_deg") if baseline else None
     base_trunk = baseline.get("trunk_angle_deg") if baseline else None
-    depth_threshold = max(
-        MIN_KNEE_FLEXION_DEG,
-        (base_knee + DEPTH_DELTA_DEG) if base_knee is not None else MIN_KNEE_FLEXION_DEG,
-    )
+    # Depth OK = parallel or below (user-dependent depth still counts as a rep; form quality only)
+    depth_by_flexion = knee_flexion is not None and knee_flexion >= PARALLEL_KNEE_FLEXION_DEG
     trunk_threshold = min(
         MAX_TRUNK_ANGLE_DEG,
         (base_trunk + TRUNK_DELTA_DEG) if base_trunk is not None else MAX_TRUNK_ANGLE_DEG,
     )
-    depth_ok = knee_flexion is not None and knee_flexion >= depth_threshold
+    if hip_below_knee is None:
+        depth_ok = depth_by_flexion
+    else:
+        depth_ok = depth_by_flexion and hip_below_knee
     trunk_ok = trunk_angle is not None and trunk_angle <= trunk_threshold
     form_ok = (
         depth_ok
@@ -326,6 +417,7 @@ def compute_frame_metrics(
         "com_offset_norm": com_offset_norm,
         "balance_ok": balance_ok,
         "form_ok": form_ok,
+        "pose_confidence": pose_conf,
     }
 
 
@@ -340,7 +432,7 @@ def detect_reps_batch(
     """
     ys = []
     for kp in keypoints_series:
-        y = _hip_y(kp) if kp else np.nan
+        y = _hip_y_norm(kp) if kp else np.nan
         ys.append(y)
     ys = np.array(ys, dtype=float)
     valid = np.isfinite(ys)
@@ -349,28 +441,38 @@ def detect_reps_batch(
     reps = []
     # Calibration baseline from early valid frames
     calib_samples: list[dict[str, Any]] = []
-    for kp in keypoints_series[: max(10, CALIBRATION_FRAMES)]:
+    for kp in keypoints_series[: max(10, CALIBRATION_FRAMES * 2)]:
         if not _pose_valid(kp):
             continue
-        calib_samples.append(compute_frame_metrics(kp, baseline=None))
+        m = compute_frame_metrics(kp, baseline=None)
+        kf = m.get("knee_flexion_deg")
+        if kf is None or kf > STANDING_KNEE_FLEXION_MAX:
+            continue
+        calib_samples.append(m)
     baseline = _compute_baseline(calib_samples) if calib_samples else None
     n = len(ys)
     from scipy.signal import find_peaks
-    peaks, _ = find_peaks(ys, distance=min_frames_between_peaks)
-    troughs, _ = find_peaks(-ys, distance=min_frames_between_peaks)
-    for i in range(len(peaks) - 1):
-        p1, p2 = peaks[i], peaks[i + 1]
-        in_between = troughs[(troughs > p1) & (troughs < p2)]
+    ys_smooth = _median_filter(ys, HIP_SMOOTH_WINDOW)
+    p05 = np.nanpercentile(ys_smooth, 5)
+    p95 = np.nanpercentile(ys_smooth, 95)
+    prom = PEAK_PROMINENCE_FRAC * max(1e-6, (p95 - p05))
+    peaks, _ = find_peaks(ys_smooth, distance=min_frames_between_peaks, prominence=prom)
+    troughs, _ = find_peaks(-ys_smooth, distance=min_frames_between_peaks, prominence=prom)
+    for i in range(len(troughs) - 1):
+        t1, t2 = troughs[i], troughs[i + 1]
+        in_between = peaks[(peaks > t1) & (peaks < t2)]
         if len(in_between) == 0:
             continue
-        trough = int(in_between[0])
-        start_f, end_f, bottom_f = p1, p2, trough
+        # Hip Y: peaks = squat bottom, troughs = standing. Use peak for depth metrics.
+        bottom_f = int(in_between[np.argmax(ys_smooth[in_between])])
+        start_f, end_f = int(t1), int(t2)
         kp_bottom = keypoints_series[bottom_f] if bottom_f < n else None
         metrics = compute_frame_metrics(kp_bottom, baseline=baseline)
         duration_sec = (end_f - start_f) / fps if fps > 0 else None
         speed_proxy = 1.0 / duration_sec if duration_sec and duration_sec > 0 else None
-        if metrics.get("depth_ok") is False:
-            continue
+        # Count every rep; depth_ok in metrics indicates form (parallel or below)
+        pose_conf = metrics.get("pose_confidence")
+        needs_review = pose_conf is None or pose_conf < 0.6
         rep = {
             "rep": len(reps) + 1,
             "start_frame": int(start_f),
@@ -378,6 +480,8 @@ def detect_reps_batch(
             "bottom_frame": int(bottom_f),
             "duration_sec": duration_sec,
             "speed_proxy": speed_proxy,
+            "pose_confidence": pose_conf,
+            "needs_review": needs_review,
         }
         rep.update(metrics)
         reps.append(rep)
@@ -397,7 +501,7 @@ class IncrementalRepDetector:
         window_size: int = 60,
         min_frames_peak_to_trough: int = 5,
         min_frames_trough_to_peak: int = 5,
-        min_frames_between_reps: int = 20,
+        min_frames_between_reps: int = 6,
     ):
         self.window_size = window_size
         self.min_pt = min_frames_peak_to_trough
@@ -406,7 +510,7 @@ class IncrementalRepDetector:
         self.hip_y_buffer: list[float] = []
         self.keypoint_buffer: list[Optional[list[tuple[float, float]]]] = []
         self.rep_count = 0
-        self.last_phase: str = "standing"
+        self.last_phase: str = "TOP_READY"
         self.confirmed_reps: list[dict[str, Any]] = []
         self._last_peak_idx: Optional[int] = -1
         self._last_trough_idx: Optional[int] = -1
@@ -414,12 +518,16 @@ class IncrementalRepDetector:
         self._calib_samples: list[dict[str, Any]] = []
         self.baseline: Optional[dict[str, Optional[float]]] = None
         self.calibrated = False
+        self._current_start_frame: Optional[int] = None
+        self._current_bottom_frame: Optional[int] = None
+        self._current_bottom_metrics: Optional[dict[str, Any]] = None
+        self._current_bottom_y: Optional[float] = None
 
     def reset(self) -> None:
         self.hip_y_buffer.clear()
         self.keypoint_buffer.clear()
         self.rep_count = 0
-        self.last_phase = "standing"
+        self.last_phase = "TOP_READY"
         self.confirmed_reps.clear()
         self._last_peak_idx = -1
         self._last_trough_idx = -1
@@ -427,6 +535,10 @@ class IncrementalRepDetector:
         self._calib_samples.clear()
         self.baseline = None
         self.calibrated = False
+        self._current_start_frame = None
+        self._current_bottom_frame = None
+        self._current_bottom_metrics = None
+        self._current_bottom_y = None
 
     def push(
         self,
@@ -439,7 +551,7 @@ class IncrementalRepDetector:
         rep_count, knee_flexion_deg, trunk_angle_deg, com_offset_norm, speed_proxy, status.
         """
         valid_pose = _pose_valid(keypoints)
-        y = _hip_y(keypoints) if keypoints else np.nan
+        y = _hip_y_norm(keypoints) if keypoints else np.nan
         self.hip_y_buffer.append(y if np.isfinite(y) else np.nan)
         self.keypoint_buffer.append(keypoints)
 
@@ -466,12 +578,16 @@ class IncrementalRepDetector:
             }
 
         if valid_pose and not self.calibrated:
-            self._calib_samples.append(compute_frame_metrics(keypoints, baseline=None))
+            m = compute_frame_metrics(keypoints, baseline=None)
+            kf = m.get("knee_flexion_deg")
+            if kf is not None and kf <= STANDING_KNEE_FLEXION_MAX:
+                self._calib_samples.append(m)
             if len(self._calib_samples) >= CALIBRATION_FRAMES:
                 self.baseline = _compute_baseline(self._calib_samples)
                 self.calibrated = True
                 self.hip_y_buffer.clear()
                 self.keypoint_buffer.clear()
+                logger.info("live_rep: calibrated (baseline knee_flex=%s)", self.baseline.get("knee_flexion_deg"))
                 return {
                     "rep_count": self.rep_count,
                     "knee_flexion_deg": metrics.get("knee_flexion_deg"),
@@ -527,57 +643,84 @@ class IncrementalRepDetector:
                         buf_fill[i] = buf[last_valid[idx - 1]]
 
         from scipy.signal import find_peaks
-        peaks, _ = find_peaks(buf_fill, distance=self.min_tp)
-        troughs, _ = find_peaks(-buf_fill, distance=self.min_pt)
+        buf_smooth = _median_filter(buf_fill, HIP_SMOOTH_WINDOW)
+        p05 = np.nanpercentile(buf_smooth, 5)
+        p95 = np.nanpercentile(buf_smooth, 95)
+        prom = PEAK_PROMINENCE_FRAC * max(1e-6, (p95 - p05))
+        peaks, _ = find_peaks(buf_smooth, distance=self.min_tp, prominence=prom)
+        troughs, _ = find_peaks(-buf_smooth, distance=self.min_pt, prominence=prom)
 
-        if len(peaks) >= 2 and len(troughs) >= 1:
-            last_peak = peaks[-1]
-            prev_peak = peaks[-2]
-            bet = troughs[(troughs > prev_peak) & (troughs < last_peak)]
-            if len(bet) > 0:
-                trough_idx = int(bet[-1])
-                start_f = frame_idx - (n - 1 - prev_peak)
-                end_f = frame_idx
-                # Only confirm if this is a new (peak,trough) pair AND enough frames
-                # have passed since the last confirmed rep (avoids counting same rep every frame)
-                peak_trough_changed = (
-                    self._last_peak_idx != last_peak or self._last_trough_idx != trough_idx
-                )
-                gap_ok = (
-                    self._last_confirmed_end_frame is None
-                    or start_f >= self._last_confirmed_end_frame + self.min_frames_between_reps
-                )
-                if peak_trough_changed and gap_ok:
-                    self._last_peak_idx = last_peak
-                    self._last_trough_idx = trough_idx
-                    self._last_confirmed_end_frame = end_f
-                    global_trough = frame_idx - (n - 1 - trough_idx)
-                    kp_bottom = self.keypoint_buffer[trough_idx] if trough_idx < len(self.keypoint_buffer) else None
-                    bottom_metrics = compute_frame_metrics(kp_bottom, baseline=self.baseline)
-                    duration_sec = (end_f - start_f) / fps if fps > 0 else None
-                    speed = (1.0 / duration_sec) if duration_sec and duration_sec > 0 else None
-                    if bottom_metrics.get("depth_ok") is False:
-                        status = "Shallow rep"
-                    else:
+        y_curr = buf_smooth[-1] if np.isfinite(buf_smooth[-1]) else None
+        if y_curr is not None:
+            low = np.nanpercentile(buf_smooth, 10)
+            high = np.nanpercentile(buf_smooth, 90)
+            span = max(0.12, high - low)
+            # Relaxed so more reps register: top=38% (standing), bottom=58% (squat depth in signal)
+            top_thresh = low + 0.38 * span
+            bottom_thresh = low + 0.58 * span
+            hysteresis = 0.06 * span
+
+            if self.last_phase == "TOP_READY":
+                status = "Standing"
+                if y_curr > top_thresh:
+                    self.last_phase = "DESCENT"
+                    self._current_start_frame = frame_idx
+                    self._current_bottom_frame = None
+                    self._current_bottom_metrics = None
+                    self._current_bottom_y = None
+                    status = "Descending"
+            elif self.last_phase == "DESCENT":
+                status = "Descending"
+                if y_curr > bottom_thresh:
+                    self.last_phase = "BOTTOM"
+                    self._current_bottom_frame = frame_idx
+                    self._current_bottom_metrics = compute_frame_metrics(keypoints, baseline=self.baseline)
+                    self._current_bottom_y = y_curr
+                    status = "Bottom"
+            elif self.last_phase == "BOTTOM":
+                status = "Bottom"
+                if self._current_bottom_y is None or y_curr > self._current_bottom_y:
+                    self._current_bottom_y = y_curr
+                    self._current_bottom_frame = frame_idx
+                    self._current_bottom_metrics = compute_frame_metrics(keypoints, baseline=self.baseline)
+                if y_curr < (bottom_thresh - hysteresis):
+                    self.last_phase = "ASCENT"
+                    status = "Ascending"
+            elif self.last_phase == "ASCENT":
+                status = "Ascending"
+                if y_curr < top_thresh:
+                    start_f = self._current_start_frame if self._current_start_frame is not None else frame_idx
+                    end_f = frame_idx
+                    gap_ok = (
+                        self._last_confirmed_end_frame is None
+                        or start_f >= self._last_confirmed_end_frame + self.min_frames_between_reps
+                    )
+                    if gap_ok and self._current_bottom_metrics:
+                        self._last_confirmed_end_frame = end_f
+                        duration_sec = (end_f - start_f) / fps if fps > 0 else None
+                        speed = (1.0 / duration_sec) if duration_sec and duration_sec > 0 else None
+                        # Count every rep; depth_ok in metrics is for form (parallel or below) only
+                        pose_conf = self._current_bottom_metrics.get("pose_confidence")
+                        needs_review = pose_conf is None or pose_conf < 0.6
                         self.rep_count += 1
                         rep = {
                             "rep": self.rep_count,
                             "start_frame": start_f,
                             "end_frame": end_f,
-                            "bottom_frame": global_trough,
+                            "bottom_frame": self._current_bottom_frame if self._current_bottom_frame is not None else end_f,
                             "duration_sec": duration_sec,
                             "speed_proxy": speed,
+                            "pose_confidence": pose_conf,
+                            "needs_review": needs_review,
                         }
-                        rep.update(bottom_metrics)
+                        rep.update(self._current_bottom_metrics)
                         self.confirmed_reps.append(rep)
-                        status = "Rep confirmed"
-            else:
-                status = "Descending" if len(troughs) > 0 and troughs[-1] > peaks[-1] else "Ascending"
-        else:
-            if len(troughs) > 0 and (len(peaks) == 0 or troughs[-1] > peaks[-1]):
-                status = "Descending"
-            elif len(peaks) > 0:
-                status = "Ascending"
+                        status = "Rep confirmed" if self._current_bottom_metrics.get("depth_ok") else "Rep (shallow)"
+                        logger.info(
+                            "live_rep: rep %s (start_f=%s end_f=%s depth_ok=%s)",
+                            self.rep_count, start_f, end_f, self._current_bottom_metrics.get("depth_ok"),
+                        )
+                    self.last_phase = "TOP_READY"
 
         if self.confirmed_reps:
             last_rep = self.confirmed_reps[-1]

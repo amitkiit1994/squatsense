@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import os
 import time
+import threading
 from typing import Any
 
 import cv2
@@ -16,6 +17,7 @@ from .io_stream import webcam_frames
 from .overlay import draw_realtime_overlay
 from .pose import create_pose_detector, process_frame
 from .reps import IncrementalRepDetector, smooth_keypoints_ema
+from .ai_coach import ai_coach_feedback
 
 # Target resize width for faster inference
 LIVE_RESIZE_WIDTH = 960
@@ -25,6 +27,8 @@ FPS_SKIP_THRESHOLD = 12
 NO_POSE_WARN_SEC = 2.0
 # EMA alpha for keypoint smoothing
 SMOOTH_ALPHA = 0.4
+AI_MIN_INTERVAL_SEC = 6.0
+AI_DISPLAY_SEC = 12.0
 
 
 def run_live_pipeline(
@@ -51,6 +55,11 @@ def run_live_pipeline(
     process_every_n = 1
     last_pose_time = time.perf_counter()
     message: Optional[str] = None
+    ai_message: Optional[str] = None
+    ai_last_time = 0.0
+    ai_pending = False
+    ai_lock = threading.Lock()
+    last_rep_count = 0
     video_writer: Optional[cv2.VideoWriter] = None
     win_name = "Squat Coach (q=quit, r=reset, s=snapshot)"
 
@@ -98,6 +107,23 @@ def run_live_pipeline(
 
             keypoints_series.append(kp_for_buffer)
             state = rep_detector.push(frame_idx, kp_for_buffer, fps_actual)
+            if state["rep_count"] > last_rep_count:
+                last_rep_count = state["rep_count"]
+                now = time.perf_counter()
+                if not ai_pending and (now - ai_last_time) >= AI_MIN_INTERVAL_SEC:
+                    reps_snapshot = list(rep_detector.confirmed_reps)
+                    ai_pending = True
+
+                    def _ai_worker() -> None:
+                        nonlocal ai_message, ai_last_time, ai_pending
+                        text = ai_coach_feedback(reps_snapshot, "live")
+                        with ai_lock:
+                            if text:
+                                ai_message = text
+                                ai_last_time = time.perf_counter()
+                            ai_pending = False
+
+                    threading.Thread(target=_ai_worker, daemon=True).start()
 
             # No-pose warning
             if time.perf_counter() - last_pose_time > NO_POSE_WARN_SEC:
@@ -106,6 +132,8 @@ def run_live_pipeline(
                 message = None
 
             out_frame = frame_bgr.copy()
+            if ai_message and (time.perf_counter() - ai_last_time) > AI_DISPLAY_SEC:
+                ai_message = None
             draw_realtime_overlay(
                 out_frame,
                 prev_keypoints,
@@ -116,6 +144,7 @@ def run_live_pipeline(
                 state.get("speed_proxy"),
                 state.get("status", "Tracking"),
                 message,
+                ai_message,
             )
 
             if record and video_writer is None:

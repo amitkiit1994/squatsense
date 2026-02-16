@@ -3,9 +3,13 @@ Analyze rep metrics and generate report.html + plots.
 """
 from __future__ import annotations
 
+import html
 import json
+import logging
 import os
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 def load_live_metrics(metrics_path: str) -> dict[str, Any]:
@@ -29,11 +33,33 @@ def run_decision_and_report(
         data = json.load(f)
     reps = data.get("reps", [])
     rep_count = data.get("rep_count", len(reps))
+    fps = data.get("fps_est") or data.get("fps")
+
+    # Debug: log metrics used for report (can redirect to file or inspect in terminal)
+    logger.info(
+        "report input: source=%s metrics_path=%s rep_count=%s len(reps)=%s fps=%s",
+        source, metrics_path, rep_count, len(reps), fps,
+    )
+    for i, r in enumerate(reps):
+        logger.info(
+            "  rep[%s] start_f=%s end_f=%s bottom_f=%s depth_ok=%s knee_flex=%s trunk=%s dur=%s speed=%s conf=%s",
+            i + 1,
+            r.get("start_frame"),
+            r.get("end_frame"),
+            r.get("bottom_frame"),
+            r.get("depth_ok"),
+            r.get("knee_flexion_deg"),
+            r.get("trunk_angle_deg"),
+            r.get("duration_sec"),
+            r.get("speed_proxy"),
+            r.get("pose_confidence"),
+        )
 
     insufficient = rep_count < min_reps_for_fatigue
     if insufficient:
         fatigue_note = "Insufficient reps for fatigue analysis (need at least {}).".format(min_reps_for_fatigue)
         fatigue_analysis = ""
+        logger.info("report fatigue: insufficient reps (need %s)", min_reps_for_fatigue)
     else:
         fatigue_note = ""
         # Simple fatigue proxy: compare first vs last rep depth (knee flexion) and speed
@@ -51,8 +77,33 @@ def run_decision_and_report(
                 f"speed change {speed_change:+.1f}%. "
                 "Decreasing depth/speed may indicate fatigue."
             )
+            logger.info(
+                "report fatigue: first depth=%s speed=%s last depth=%s speed=%s -> depth_change=%s%% speed_change=%s%%",
+                d0, s0, d1, s1, round(depth_change, 1), round(speed_change, 1),
+            )
         else:
             fatigue_analysis = "Only one rep; no fatigue comparison."
+            logger.info("report fatigue: only one rep, no comparison")
+
+    # Write debug snapshot of metrics used for this report (for post-run inspection)
+    try:
+        debug_path = os.path.join(output_dir, "report_metrics_debug.json")
+        with open(debug_path, "w") as f:
+            json.dump({
+                "source": source,
+                "metrics_path": metrics_path,
+                "rep_count": rep_count,
+                "fps": fps,
+                "reps": reps,
+                "fatigue": {
+                    "insufficient": insufficient,
+                    "fatigue_note": fatigue_note,
+                    "fatigue_analysis": fatigue_analysis,
+                } if not insufficient and len(reps) >= 2 else None,
+            }, f, indent=2)
+        logger.info("report debug snapshot: %s", debug_path)
+    except Exception as e:
+        logger.warning("could not write report_metrics_debug.json: %s", e)
 
     # Build HTML report (same format as offline)
     report_lines = [
@@ -67,6 +118,18 @@ def run_decision_and_report(
         report_lines.append(f"<p><b>Note:</b> {fatigue_note}</p>")
     if fatigue_analysis:
         report_lines.append(f"<p><b>Fatigue:</b> {fatigue_analysis}</p>")
+
+    # Optional AI coach feedback (only if enabled and key present)
+    try:
+        from .ai_coach import ai_coach_feedback
+        ai_text = ai_coach_feedback(reps, source)
+        if ai_text:
+            report_lines.append('<section class="ai-coach-block">')
+            report_lines.append("<h2>AI Coach</h2>")
+            report_lines.append(f'<div class="ai-coach-content">{html.escape(ai_text)}</div>')
+            report_lines.append("</section>")
+    except Exception:
+        pass
 
     def _pct(n: int, d: int) -> float:
         return (n / d * 100.0) if d > 0 else 0.0

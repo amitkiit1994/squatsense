@@ -1,13 +1,21 @@
 from __future__ import annotations
 
+import asyncio
+import base64
+import concurrent.futures
+import json
+import logging
+import shutil
+import tempfile
+import threading
+import time
+import uuid
 from pathlib import Path
 from typing import Optional
 
-import base64
-import json
-import shutil
-import tempfile
-import time
+# Ensure report and live-rep logging is visible when running under uvicorn
+logging.getLogger("src.decision").setLevel(logging.INFO)
+logging.getLogger("src.reps").setLevel(logging.INFO)
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi import WebSocket, WebSocketDisconnect
@@ -20,11 +28,67 @@ from run import run_offline
 from src.decision import run_decision_and_report
 from src.pose import create_pose_detector, process_frame
 from src.reps import IncrementalRepDetector, smooth_keypoints_ema
+from src.ai_coach import ai_coach_feedback
 
 
 APP_ROOT = Path(__file__).resolve().parent
 
 app = FastAPI(title="Coachless Squat POC")
+
+# Background analysis jobs (job_id -> {status, result, created})
+_JOB_STORE: dict[str, dict] = {}
+_JOB_LOCK = threading.Lock()
+_MAX_JOBS = 100
+
+# Thread pool for live WebSocket so event loop can respond to pings (avoids keepalive timeout)
+_LIVE_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="live_pose")
+AI_MIN_INTERVAL_SEC = 6.0
+AI_DISPLAY_SEC = 12.0
+
+
+def _run_analysis_background(job_id: str, upload_path: str, job_dir: str) -> None:
+    try:
+        run_offline(upload_path, output_dir=job_dir)
+        report_path = Path(job_dir) / "report.html"
+        report_html = _extract_body(report_path.read_text()) if report_path.exists() else ""
+        with _JOB_LOCK:
+            _JOB_STORE[job_id]["status"] = "done"
+            _JOB_STORE[job_id]["result"] = report_html
+    except Exception as e:
+        with _JOB_LOCK:
+            _JOB_STORE[job_id]["status"] = "error"
+            _JOB_STORE[job_id]["result"] = str(e)
+    try:
+        shutil.rmtree(job_dir, ignore_errors=True)
+    except Exception:
+        pass
+
+
+def _waiting_page(job_id: str) -> str:
+    return _page(
+        "Analyzing…",
+        f"""
+    <div class="card" style="text-align:center;">
+      <h3>Analyzing your video</h3>
+      <p class="muted" style="margin-top:12px;">This usually takes 1–2 minutes. You can stay on this page.</p>
+      <p id="pollStatus" class="muted" style="margin-top:8px;">Checking…</p>
+    </div>
+    <script>
+      const jobId = "{job_id}";
+      const statusEl = document.getElementById("pollStatus");
+      function poll() {{
+        fetch("/analyze/result/" + jobId)
+          .then(r => {{
+            if (r.status === 200) return r.text().then(html => {{ document.open(); document.write(html); document.close(); }});
+            if (r.status === 202) {{ statusEl.textContent = "Still analyzing…"; setTimeout(poll, 2500); return; }}
+            return r.text().then(t => {{ statusEl.textContent = "Error: " + (t || r.status); }});
+          }})
+          .catch(err => {{ statusEl.textContent = "Error: " + (err.message || "network"); }});
+      }}
+      setTimeout(poll, 1500);
+    </script>
+    """,
+    )
 
 
 _DEFAULT_FOOTER = """
@@ -44,7 +108,10 @@ def _page(title: str, body: str, footer: str | None = None) -> str:
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <title>{title}</title>
     <style>
       @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap");
@@ -67,15 +134,21 @@ def _page(title: str, body: str, footer: str | None = None) -> str:
       html {{
         min-height: 100%;
         overflow-x: hidden;
+        -webkit-text-size-adjust: 100%;
+        -webkit-tap-highlight-color: transparent;
       }}
       body {{
-        font-family: "DM Sans", -apple-system, sans-serif;
+        font-family: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
         background: var(--bg);
         color: var(--text);
         min-height: 100vh;
+        min-height: 100dvh;
         display: flex;
         flex-direction: column;
         overflow-x: hidden;
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+        padding-bottom: env(safe-area-inset-bottom);
       }}
       body::before {{
         content: "";
@@ -94,7 +167,7 @@ def _page(title: str, body: str, footer: str | None = None) -> str:
         flex: 1;
         max-width: 720px;
         margin: 0 auto;
-        padding: 40px 24px 0;
+        padding: max(env(safe-area-inset-top), 40px) 24px 0;
         width: 100%;
       }}
       .hero {{
@@ -271,7 +344,7 @@ def _page(title: str, body: str, footer: str | None = None) -> str:
       }}
       .footer {{
         margin-top: 32px;
-        padding: 24px 0 40px;
+        padding: 24px 0 max(40px, env(safe-area-inset-bottom));
         text-align: center;
         font-size: 14px;
         color: var(--muted);
@@ -309,6 +382,45 @@ def _page(title: str, body: str, footer: str | None = None) -> str:
       .report-embed img {{
         max-width: 100%;
         height: auto;
+      }}
+      /* AI Coach block: readable layout, no overflow */
+      .report-embed .ai-coach-block {{
+        margin-top: 20px;
+        padding: 16px;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        border-left: 4px solid var(--accent);
+      }}
+      .report-embed .ai-coach-block h2 {{
+        margin-top: 0;
+        margin-bottom: 12px;
+        font-size: 17px;
+        color: var(--accent-soft);
+      }}
+      .report-embed .ai-coach-content {{
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        font-size: 14px;
+        line-height: 1.55;
+        color: var(--text);
+        margin: 0;
+        max-width: 100%;
+      }}
+      .report-embed pre {{
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        font-size: 14px;
+        line-height: 1.55;
+        margin: 0;
+        padding: 12px;
+        background: var(--panel-2);
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        max-width: 100%;
+        overflow-x: auto;
       }}
       /* Mobile: report stacks vertically, no horizontal scroll */
       @media (max-width: 640px) {{
@@ -361,6 +473,23 @@ def _page(title: str, body: str, footer: str | None = None) -> str:
         }}
         .report-embed td:first-of-type::before {{
           color: var(--accent-soft);
+        }}
+        .report-embed .ai-coach-block {{
+          margin-top: 16px;
+          padding: 12px;
+          border-left-width: 4px;
+        }}
+        .report-embed .ai-coach-block h2 {{
+          font-size: 16px;
+          margin-bottom: 10px;
+        }}
+        .report-embed .ai-coach-content {{
+          font-size: 14px;
+          line-height: 1.5;
+        }}
+        .report-embed pre {{
+          padding: 10px;
+          font-size: 14px;
         }}
         .btn-group {{
           flex-direction: column;
@@ -429,14 +558,15 @@ def _render_homepage(report_html=None) -> HTMLResponse:
     <div class="card" id="upload">
       <h3>Upload a video</h3>
       <div class="card-inner">
-        <form action="/analyze" method="post" enctype="multipart/form-data" class="form-row">
+        <form id="uploadForm" action="/analyze" method="post" enctype="multipart/form-data" class="form-row">
           <label for="videoInput">Video file</label>
           <input id="videoInput" type="file" name="video" accept="video/*" capture="environment" required />
           <div class="btn-group" style="margin-top:6px;">
-            <button class="btn" type="submit">Analyze video</button>
+            <button class="btn" id="analyzeBtn" type="submit">Analyze video</button>
           </div>
         </form>
-        <p class="muted">On mobile, this opens the camera for a quick recording.</p>
+        <p id="uploadStatus" class="muted" style="margin-top:8px;display:none;"></p>
+        <p class="muted">On mobile, this opens the camera for a quick recording. Analysis may take 1–2 minutes for longer clips.</p>
         <div class="btn-group">
           <button class="btn btn-secondary" id="showRec">Record in browser</button>
         </div>
@@ -493,6 +623,12 @@ def _render_homepage(report_html=None) -> HTMLResponse:
 
       const setStatus = (msg) => { statusEl.textContent = "Status: " + msg; };
 
+      // On mobile use front camera; on desktop use rear when available
+      const getVideoConstraints = () => {
+        const mobile = window.matchMedia("(max-width: 640px)").matches;
+        return { video: { facingMode: mobile ? "user" : "environment" }, audio: false };
+      };
+
       if (window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         showRec.style.display = "inline-block";
       } else {
@@ -504,9 +640,57 @@ def _render_homepage(report_html=None) -> HTMLResponse:
         showRec.disabled = true;
       };
 
+      const uploadForm = document.getElementById("uploadForm");
+      const uploadStatus = document.getElementById("uploadStatus");
+      const analyzeBtn = document.getElementById("analyzeBtn");
+      const ANALYZE_TIMEOUT_MS = 300000;
+
+      const submitAnalyze = async (formData) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), ANALYZE_TIMEOUT_MS);
+        try {
+          const res = await fetch("/analyze", { method: "POST", body: formData, signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (!res.ok) {
+            const t = await res.text();
+            if (uploadStatus) {
+              uploadStatus.style.display = "block";
+              uploadStatus.textContent = "Error " + res.status + (t ? ": " + t.slice(0, 120) : "");
+            }
+            return;
+          }
+          const html = await res.text();
+          document.open();
+          document.write(html);
+          document.close();
+        } catch (err) {
+          clearTimeout(timeoutId);
+          if (uploadStatus) {
+            uploadStatus.style.display = "block";
+            uploadStatus.textContent = err.name === "AbortError" ? "Timeout — try a shorter video (under 1 min)." : "Error: " + (err.message || "network failed");
+          }
+          if (analyzeBtn) analyzeBtn.disabled = false;
+        }
+      };
+
+      if (uploadForm) {
+        uploadForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const input = document.getElementById("videoInput");
+          if (!input || !input.files || !input.files.length) return;
+          if (uploadStatus) {
+            uploadStatus.style.display = "block";
+            uploadStatus.textContent = "Uploading & analyzing… (may take 1–2 min)";
+          }
+          if (analyzeBtn) analyzeBtn.disabled = true;
+          const formData = new FormData(uploadForm);
+          await submitAnalyze(formData);
+        });
+      }
+
       startCam.onclick = async () => {
         try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+          stream = await navigator.mediaDevices.getUserMedia(getVideoConstraints());
           preview.srcObject = stream;
           startRec.disabled = false;
           setStatus("camera ready");
@@ -526,14 +710,27 @@ def _render_homepage(report_html=None) -> HTMLResponse:
         recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
         recorder.onstop = async () => {
           const blob = new Blob(chunks, { type: recorder.mimeType || "video/webm" });
-          setStatus("uploading...");
+          setStatus("Uploading & analyzing… (may take 1–2 min)");
           const form = new FormData();
           form.append("video", new File([blob], `recording-${Date.now()}.webm`, { type: blob.type }));
-          const res = await fetch("/analyze", { method: "POST", body: form });
-          const html = await res.text();
-          document.open();
-          document.write(html);
-          document.close();
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 300000);
+          try {
+            const res = await fetch("/analyze", { method: "POST", body: form, signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (!res.ok) {
+              const t = await res.text();
+              setStatus("Error " + res.status + (t ? ": " + t.slice(0, 80) : ""));
+              return;
+            }
+            const html = await res.text();
+            document.open();
+            document.write(html);
+            document.close();
+          } catch (err) {
+            clearTimeout(timeoutId);
+            setStatus(err.name === "AbortError" ? "Timeout (try a shorter clip)" : "Error: " + (err.message || "network failed"));
+          }
         };
         recorder.start();
         startRec.disabled = true;
@@ -586,16 +783,21 @@ def _render_homepage(report_html=None) -> HTMLResponse:
         const h = liveOverlay.height;
         liveCtx.clearRect(0, 0, w, h);
         liveCtx.fillStyle = "rgba(0,0,0,0.5)";
-        liveCtx.fillRect(0, 0, w, 90);
-        liveCtx.fillStyle = "#fff";
-        liveCtx.font = "16px sans-serif";
-        const lines = [
+        const panelLines = [
           `Rep: ${data.rep_count ?? "--"} | Status: ${data.status ?? "--"}`,
           `Knee flex: ${data.knee_flexion_deg?.toFixed?.(1) ?? "--"} deg`,
           `Trunk: ${data.trunk_angle_deg?.toFixed?.(1) ?? "--"} deg`,
           `COM off: ${data.com_offset_norm?.toFixed?.(2) ?? "--"} | Speed: ${data.speed_proxy?.toFixed?.(2) ?? "--"}`,
         ];
-        lines.forEach((line, i) => liveCtx.fillText(line, 12, 24 + i * 20));
+        if (data.ai_message) {
+          const msg = ("" + data.ai_message).replace(/\\s+/g, " ").trim();
+          panelLines.push(`AI: ${msg.length > 64 ? msg.slice(0, 61) + "..." : msg}`);
+        }
+        const panelHeight = 14 + panelLines.length * 20;
+        liveCtx.fillRect(0, 0, w, panelHeight);
+        liveCtx.fillStyle = "#fff";
+        liveCtx.font = "16px sans-serif";
+        panelLines.forEach((line, i) => liveCtx.fillText(line, 12, 24 + i * 20));
 
         if (Array.isArray(data.keypoints)) {
           liveCtx.strokeStyle = "#00ff7f";
@@ -656,7 +858,7 @@ def _render_homepage(report_html=None) -> HTMLResponse:
 
       liveStart.onclick = async () => {
         try {
-          liveStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+          liveStream = await navigator.mediaDevices.getUserMedia(getVideoConstraints());
           livePreview.srcObject = liveStream;
           await livePreview.play();
           const wsProto = location.protocol === "https:" ? "wss" : "ws";
@@ -716,20 +918,43 @@ def analyze(video: UploadFile = File(...)) -> HTMLResponse:
     if suffix not in {".mp4", ".mov", ".mkv", ".avi", ".webm"}:
         raise HTTPException(status_code=400, detail="Unsupported file type.")
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tmp = Path(tmpdir)
-        upload_path = tmp / f"upload{suffix}"
-        with upload_path.open("wb") as f:
-            shutil.copyfileobj(video.file, f)
-        try:
-            run_offline(str(upload_path), output_dir=str(tmp))
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Analysis failed: {e}") from e
-        report_path = tmp / "report.html"
-        if not report_path.exists():
-            raise HTTPException(status_code=500, detail="Report generation failed.")
-        report_html = _extract_body(report_path.read_text())
-    return _render_homepage(report_html)
+    job_id = str(uuid.uuid4())
+    job_dir = Path(tempfile.gettempdir()) / "squatsense_jobs" / job_id
+    job_dir.mkdir(parents=True, exist_ok=True)
+    upload_path = job_dir / f"upload{suffix}"
+    with upload_path.open("wb") as f:
+        shutil.copyfileobj(video.file, f)
+
+    with _JOB_LOCK:
+        while len(_JOB_STORE) >= _MAX_JOBS:
+            oldest = min(_JOB_STORE.items(), key=lambda x: x[1].get("created", 0))
+            del _JOB_STORE[oldest[0]]
+        _JOB_STORE[job_id] = {"status": "pending", "result": None, "created": time.time()}
+
+    thread = threading.Thread(
+        target=_run_analysis_background,
+        args=(job_id, str(upload_path), str(job_dir)),
+        daemon=True,
+    )
+    thread.start()
+
+    return HTMLResponse(_waiting_page(job_id), status_code=202)
+
+
+@app.get("/analyze/result/{job_id}", response_class=HTMLResponse)
+def analyze_result(job_id: str) -> HTMLResponse:
+    with _JOB_LOCK:
+        job = _JOB_STORE.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found or expired.")
+    status = job.get("status", "pending")
+    result = job.get("result")
+    if status == "pending":
+        return HTMLResponse(_waiting_page(job_id), status_code=202)
+    if status == "error":
+        err_msg = (result or "Analysis failed.").replace("<", "&lt;").replace(">", "&gt;")
+        return _render_homepage(f'<div class="card"><h3>Analysis failed</h3><p class="muted">{err_msg}</p></div>')
+    return _render_homepage(result)
 
 
 @app.get("/health")
@@ -740,6 +965,7 @@ def health() -> dict[str, str]:
 @app.websocket("/ws/live")
 async def live_socket(websocket: WebSocket) -> None:
     await websocket.accept()
+    print("live: session started", flush=True)
     pose = create_pose_detector()
     rep_detector = IncrementalRepDetector()
     prev_keypoints = None
@@ -747,6 +973,10 @@ async def live_socket(websocket: WebSocket) -> None:
     frame_idx = 0
     t_prev = time.perf_counter()
     keypoints_series: list[list[tuple[float, float]] | None] = []
+    ai_message: Optional[str] = None
+    ai_last_time = 0.0
+    ai_pending = False
+    last_rep_count = 0
     try:
         while True:
             msg = await websocket.receive_text()
@@ -755,6 +985,7 @@ async def live_socket(websocket: WebSocket) -> None:
             except json.JSONDecodeError:
                 continue
             if payload.get("type") == "stop":
+                print(f"live: stop received, rep_count={rep_detector.rep_count}", flush=True)
                 save = payload.get("save", True)
                 if save:
                     with tempfile.TemporaryDirectory() as tmpdir:
@@ -771,17 +1002,29 @@ async def live_socket(websocket: WebSocket) -> None:
                         with keypoints_path.open("w") as f:
                             json.dump({"frames": kp_for_save, "fps_est": fps_est}, f, indent=2)
 
+                        def _to_json_serializable(obj):
+                            if isinstance(obj, dict):
+                                return {k: _to_json_serializable(v) for k, v in obj.items()}
+                            if isinstance(obj, list):
+                                return [_to_json_serializable(v) for v in obj]
+                            if isinstance(obj, np.integer):
+                                return int(obj)
+                            if isinstance(obj, np.floating):
+                                return float(obj)
+                            return obj
+
                         metrics_path = tmp / "live_metrics.json"
                         with metrics_path.open("w") as f:
                             json.dump(
                                 {
-                                    "reps": rep_detector.confirmed_reps,
+                                    "reps": _to_json_serializable(rep_detector.confirmed_reps),
                                     "rep_count": int(rep_detector.rep_count),
                                     "fps_est": float(fps_est),
                                 },
                                 f,
                                 indent=2,
                             )
+                        print(f"live: generating report (reps={rep_detector.rep_count})", flush=True)
                         run_decision_and_report(
                             metrics_path=str(metrics_path),
                             keypoints_path=str(keypoints_path),
@@ -789,6 +1032,24 @@ async def live_socket(websocket: WebSocket) -> None:
                             source="live-web",
                             min_reps_for_fatigue=2,
                         )
+                        # Print metrics to terminal (logger may not be visible under uvicorn)
+                        print(f"live: report metrics (fps_est={fps_est:.1f})", flush=True)
+                        for i, r in enumerate(rep_detector.confirmed_reps):
+                            kf = r.get("knee_flexion_deg")
+                            ta = r.get("trunk_angle_deg")
+                            dur = r.get("duration_sec")
+                            sp = r.get("speed_proxy")
+                            depth_ok = r.get("depth_ok")
+                            form_ok = r.get("form_ok")
+                            kf_s = f"{float(kf):.1f}" if kf is not None else "-"
+                            ta_s = f"{float(ta):.1f}" if ta is not None else "-"
+                            dur_s = f"{float(dur):.2f}" if dur is not None else "-"
+                            sp_s = f"{float(sp):.2f}" if sp is not None else "-"
+                            print(
+                                f"  rep {i+1}: depth_ok={depth_ok} form_ok={form_ok} "
+                                f"knee_flex_deg={kf_s} trunk_deg={ta_s} dur_sec={dur_s} speed={sp_s}",
+                                flush=True,
+                            )
                         report_path = tmp / "report.html"
                         report_html = _extract_body(report_path.read_text()) if report_path.exists() else ""
                     await websocket.send_text(json.dumps({"type": "report", "html": report_html}))
@@ -807,6 +1068,8 @@ async def live_socket(websocket: WebSocket) -> None:
             frame_bgr = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
             if frame_bgr is None:
                 continue
+            if frame_idx == 0:
+                print("live: first frame received", flush=True)
 
             t_now = time.perf_counter()
             dt = t_now - t_prev
@@ -814,22 +1077,53 @@ async def live_socket(websocket: WebSocket) -> None:
                 fps_est = 0.9 * fps_est + 0.1 * (1.0 / dt)
             t_prev = t_now
 
-            kp_raw = process_frame(frame_bgr, pose)
-            if kp_raw is not None:
-                kp_smooth = smooth_keypoints_ema(kp_raw, prev_keypoints, 0.4)
-                prev_keypoints = kp_smooth
-            else:
-                kp_smooth = prev_keypoints
+            def _process_frame_sync() -> tuple:
+                kp_raw = process_frame(frame_bgr, pose)
+                if kp_raw is not None:
+                    kp_smooth = smooth_keypoints_ema(kp_raw, prev_keypoints, 0.4)
+                else:
+                    kp_smooth = prev_keypoints
+                state = rep_detector.push(frame_idx, kp_smooth, fps_est)
+                return (kp_smooth, state)
 
-            state = rep_detector.push(frame_idx, kp_smooth, fps_est)
+            kp_smooth, state = await asyncio.get_event_loop().run_in_executor(
+                _LIVE_EXECUTOR, _process_frame_sync
+            )
+            prev_keypoints = kp_smooth
             keypoints_series.append(kp_smooth)
             frame_idx += 1
+            if frame_idx % 60 == 0:
+                print(f"live: frame {frame_idx} (rep_count={rep_detector.rep_count})", flush=True)
+
+            if state.get("rep_count", 0) > last_rep_count:
+                last_rep_count = int(state.get("rep_count") or 0)
+                now = time.perf_counter()
+                if not ai_pending and (now - ai_last_time) >= AI_MIN_INTERVAL_SEC:
+                    reps_snapshot = list(rep_detector.confirmed_reps)
+                    ai_pending = True
+
+                    def _ai_task() -> Optional[str]:
+                        return ai_coach_feedback(reps_snapshot, "live-web")
+
+                    async def _handle_ai() -> None:
+                        nonlocal ai_message, ai_last_time, ai_pending
+                        text = await asyncio.get_event_loop().run_in_executor(
+                            _LIVE_EXECUTOR, _ai_task
+                        )
+                        if text:
+                            ai_message = text
+                            ai_last_time = time.perf_counter()
+                        ai_pending = False
+
+                    asyncio.create_task(_handle_ai())
 
             keypoints_norm = None
             if kp_smooth is not None and frame_bgr is not None:
                 h, w = frame_bgr.shape[:2]
                 if w > 0 and h > 0:
                     keypoints_norm = [[p[0] / w, p[1] / h] for p in kp_smooth]
+            if ai_message and (time.perf_counter() - ai_last_time) > AI_DISPLAY_SEC:
+                ai_message = None
             await websocket.send_text(
                 json.dumps(
                     {
@@ -841,11 +1135,19 @@ async def live_socket(websocket: WebSocket) -> None:
                         "status": state.get("status"),
                         "fps_est": fps_est,
                         "keypoints": keypoints_norm,
+                        "ai_message": ai_message,
                     }
                 )
             )
     except WebSocketDisconnect:
+        print(f"live: client disconnected (frames={frame_idx}, rep_count={rep_detector.rep_count})", flush=True)
         return
+    except Exception as e:
+        # Normal client close (e.g. code 1000) can surface as ConnectionClosedError from websockets
+        if "ConnectionClosed" in type(e).__name__ or "1000" in str(e):
+            print(f"live: connection closed (frames={frame_idx}, rep_count={rep_detector.rep_count})", flush=True)
+            return
+        raise
 
 
 if __name__ == "__main__":

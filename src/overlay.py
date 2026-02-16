@@ -50,6 +50,7 @@ def draw_realtime_overlay(
     speed_proxy: Optional[float],
     status: str,
     message: Optional[str] = None,
+    ai_message: Optional[str] = None,
 ) -> None:
     """
     Draw realtime overlay on frame (in-place):
@@ -62,7 +63,7 @@ def draw_realtime_overlay(
         draw_skeleton(frame, keypoints, color=(0, 255, 0), thickness=2)
 
     # Semi-transparent panel for text
-    panel_h = 170
+    panel_h = 200 if ai_message else 170
     overlay = frame.copy()
     cv2.rectangle(overlay, (0, 0), (w, panel_h), (40, 40, 40), -1)
     cv2.addWeighted(overlay, 0.6, frame, 0.4, 0, frame)
@@ -85,6 +86,11 @@ def draw_realtime_overlay(
     put(f"COM off: {fmt(com_offset_norm)}", y0 + 3 * dy)
     put(f"Speed: {fmt(speed_proxy)}", y0 + 4 * dy)
     put(f"Status: {status}", y0 + 5 * dy)
+    if ai_message:
+        msg = ai_message.replace("\n", " ").strip()
+        if len(msg) > 64:
+            msg = msg[:61] + "..."
+        put(f"AI: {msg}", y0 + 6 * dy)
 
     if message:
         # Message at bottom or center

@@ -8,6 +8,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import sys
 
@@ -35,6 +36,7 @@ from src.decision import run_decision_and_report
 
 def run_offline(video_path: str, output_dir: str = "outputs") -> None:
     """Process video file: pose -> rep detection -> report."""
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")
     os.makedirs(output_dir, exist_ok=True)
     pose = create_pose_detector()
     keypoints_series = []

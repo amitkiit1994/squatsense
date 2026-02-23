@@ -1,15 +1,21 @@
 """
-MediaPipe Pose estimation. Returns keypoints in image coordinates (pixel).
+MediaPipe Pose estimation. Returns keypoints in image coordinates (pixel)
+and 3D world landmarks (meters, hip-centered) when available.
 Uses Pose Landmarker task (MediaPipe 0.10+). CPU-only, suitable for macOS.
 """
 from __future__ import annotations
 
 import os
 import urllib.request
-from typing import Optional
+from typing import Any, Optional, TypedDict
 
 import cv2
 import numpy as np
+
+
+class PoseResult(TypedDict):
+    keypoints_2d: list[tuple[float, float]]
+    keypoints_3d: Optional[list[tuple[float, float, float]]]
 
 # MediaPipe Pose landmark indices (same as PoseLandmark)
 class LandmarkIdx:
@@ -70,10 +76,13 @@ def _create_landmarker(cache_dir: Optional[str] = None):
 def process_frame(
     frame_bgr: np.ndarray,
     pose,  # PoseLandmarker or legacy mp.solutions.pose.Pose
-) -> Optional[list[tuple[float, float]]]:
+) -> Optional[PoseResult]:
     """
     Run pose estimation on one BGR frame.
-    Returns list of (x, y) in pixel coords for 33 landmarks, or None if no pose.
+    Returns a PoseResult dict with:
+      - keypoints_2d: list of (x, y) in pixel coords for 33 landmarks
+      - keypoints_3d: list of (x, y, z) in meters (hip-centered), or None
+    Returns None when no pose is detected.
     """
     h, w = frame_bgr.shape[:2]
     rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
@@ -86,12 +95,28 @@ def process_frame(
         if not result.pose_landmarks or len(result.pose_landmarks) == 0:
             return None
         landmarks = result.pose_landmarks[0]
-        return [(lm.x * w, lm.y * h) for lm in landmarks]
+        kp_2d = [(lm.x * w, lm.y * h) for lm in landmarks]
+        kp_3d: Optional[list[tuple[float, float, float]]] = None
+        if (
+            hasattr(result, "pose_world_landmarks")
+            and result.pose_world_landmarks
+            and len(result.pose_world_landmarks) > 0
+        ):
+            wl = result.pose_world_landmarks[0]
+            kp_3d = [(lm.x, lm.y, lm.z) for lm in wl]
+        return {"keypoints_2d": kp_2d, "keypoints_3d": kp_3d}
+
     # Legacy mp.solutions.pose.Pose (MediaPipe < 0.10)
     results = pose.process(rgb)
     if not results.pose_landmarks:
         return None
-    return [(lm.x * w, lm.y * h) for lm in results.pose_landmarks.landmark]
+    kp_2d = [(lm.x * w, lm.y * h) for lm in results.pose_landmarks.landmark]
+    kp_3d = None
+    if hasattr(results, "pose_world_landmarks") and results.pose_world_landmarks:
+        kp_3d = [
+            (lm.x, lm.y, lm.z) for lm in results.pose_world_landmarks.landmark
+        ]
+    return {"keypoints_2d": kp_2d, "keypoints_3d": kp_3d}
 
 
 def create_pose_detector(

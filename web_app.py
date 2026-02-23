@@ -27,7 +27,7 @@ import numpy as np
 from run import run_offline
 from src.decision import run_decision_and_report
 from src.pose import create_pose_detector, process_frame
-from src.reps import IncrementalRepDetector, smooth_keypoints_ema
+from src.reps import IncrementalRepDetector, smooth_keypoints_ema, smooth_keypoints_ema_3d
 from src.ai_coach import ai_coach_feedback
 
 
@@ -969,10 +969,12 @@ async def live_socket(websocket: WebSocket) -> None:
     pose = create_pose_detector()
     rep_detector = IncrementalRepDetector()
     prev_keypoints = None
+    prev_keypoints_3d = None
     fps_est = 15.0
     frame_idx = 0
     t_prev = time.perf_counter()
     keypoints_series: list[list[tuple[float, float]] | None] = []
+    keypoints_3d_series: list[list[tuple[float, float, float]] | None] = []
     ai_message: Optional[str] = None
     ai_last_time = 0.0
     ai_pending = False
@@ -1078,19 +1080,29 @@ async def live_socket(websocket: WebSocket) -> None:
             t_prev = t_now
 
             def _process_frame_sync() -> tuple:
-                kp_raw = process_frame(frame_bgr, pose)
-                if kp_raw is not None:
+                pose_result = process_frame(frame_bgr, pose)
+                if pose_result is not None:
+                    kp_raw = pose_result["keypoints_2d"]
+                    kp3_raw = pose_result["keypoints_3d"]
                     kp_smooth = smooth_keypoints_ema(kp_raw, prev_keypoints, 0.4)
+                    kp3_smooth = (
+                        smooth_keypoints_ema_3d(kp3_raw, prev_keypoints_3d, 0.4)
+                        if kp3_raw is not None
+                        else prev_keypoints_3d
+                    )
                 else:
                     kp_smooth = prev_keypoints
-                state = rep_detector.push(frame_idx, kp_smooth, fps_est)
-                return (kp_smooth, state)
+                    kp3_smooth = prev_keypoints_3d
+                state = rep_detector.push(frame_idx, kp_smooth, fps_est, keypoints_3d=kp3_smooth)
+                return (kp_smooth, kp3_smooth, state)
 
-            kp_smooth, state = await asyncio.get_event_loop().run_in_executor(
+            kp_smooth, kp3_smooth, state = await asyncio.get_event_loop().run_in_executor(
                 _LIVE_EXECUTOR, _process_frame_sync
             )
             prev_keypoints = kp_smooth
+            prev_keypoints_3d = kp3_smooth
             keypoints_series.append(kp_smooth)
+            keypoints_3d_series.append(kp3_smooth)
             frame_idx += 1
             if frame_idx % 60 == 0:
                 print(f"live: frame {frame_idx} (rep_count={rep_detector.rep_count})", flush=True)

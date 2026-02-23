@@ -1,6 +1,7 @@
 """
 Rep detection: batch (offline) and incremental (live).
-Uses hip Y for phase and biomechanics-derived metrics (angles, COM proxy).
+Uses hip Y (2D) or 3D knee flexion for phase and biomechanics-derived metrics.
+When 3D world landmarks are available, angles and depth are view-invariant.
 """
 from __future__ import annotations
 
@@ -171,6 +172,145 @@ def _hip_below_knee(
         leg_len = math.hypot(hip_mid[0] - ankle_mid[0], hip_mid[1] - ankle_mid[1])
         margin = 0.02 * leg_len
     return hip_mid[1] > (knee_mid[1] + margin)
+
+
+# ---------------------------------------------------------------------------
+# 3D geometry helpers (world landmarks in meters, hip-centered)
+# ---------------------------------------------------------------------------
+
+def _get_point_3d(
+    keypoints_3d: list[tuple[float, float, float]] | None,
+    idx: int,
+) -> Optional[tuple[float, float, float]]:
+    if not keypoints_3d or idx >= len(keypoints_3d):
+        return None
+    return keypoints_3d[idx]
+
+
+def _midpoint_3d(
+    a: Optional[tuple[float, float, float]],
+    b: Optional[tuple[float, float, float]],
+) -> Optional[tuple[float, float, float]]:
+    if a is None or b is None:
+        return None
+    return ((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0, (a[2] + b[2]) / 2.0)
+
+
+def _angle_deg_3d(
+    a: Optional[tuple[float, float, float]],
+    b: Optional[tuple[float, float, float]],
+    c: Optional[tuple[float, float, float]],
+) -> Optional[float]:
+    """Angle at b for triangle a-b-c in 3D, in degrees."""
+    if a is None or b is None or c is None:
+        return None
+    ba = (a[0] - b[0], a[1] - b[1], a[2] - b[2])
+    bc = (c[0] - b[0], c[1] - b[1], c[2] - b[2])
+    norm_ba = math.sqrt(ba[0] ** 2 + ba[1] ** 2 + ba[2] ** 2)
+    norm_bc = math.sqrt(bc[0] ** 2 + bc[1] ** 2 + bc[2] ** 2)
+    denom = norm_ba * norm_bc
+    if denom < 1e-6:
+        return None
+    cos_val = (ba[0] * bc[0] + ba[1] * bc[1] + ba[2] * bc[2]) / denom
+    cos_val = max(-1.0, min(1.0, cos_val))
+    return math.degrees(math.acos(cos_val))
+
+
+def _knee_angle_deg_3d(keypoints_3d: list[tuple[float, float, float]]) -> Optional[float]:
+    """Average knee angle from 3D world landmarks (left/right)."""
+    lh = _get_point_3d(keypoints_3d, LandmarkIdx.LEFT_HIP)
+    rh = _get_point_3d(keypoints_3d, LandmarkIdx.RIGHT_HIP)
+    lk = _get_point_3d(keypoints_3d, LandmarkIdx.LEFT_KNEE)
+    rk = _get_point_3d(keypoints_3d, LandmarkIdx.RIGHT_KNEE)
+    la = _get_point_3d(keypoints_3d, LandmarkIdx.LEFT_ANKLE)
+    ra = _get_point_3d(keypoints_3d, LandmarkIdx.RIGHT_ANKLE)
+    left = _angle_deg_3d(lh, lk, la)
+    right = _angle_deg_3d(rh, rk, ra)
+    if left is None and right is None:
+        return None
+    if left is None:
+        return right
+    if right is None:
+        return left
+    return (left + right) / 2.0
+
+
+def _trunk_angle_deg_3d(
+    keypoints_3d: list[tuple[float, float, float]],
+    up_vector: tuple[float, float, float] = (0.0, -1.0, 0.0),
+) -> Optional[float]:
+    """
+    Trunk angle from vertical in 3D world coords.
+    Default up_vector assumes camera is roughly level (MediaPipe Y increases downward).
+    """
+    ls = _get_point_3d(keypoints_3d, LandmarkIdx.LEFT_SHOULDER)
+    rs = _get_point_3d(keypoints_3d, LandmarkIdx.RIGHT_SHOULDER)
+    lh = _get_point_3d(keypoints_3d, LandmarkIdx.LEFT_HIP)
+    rh = _get_point_3d(keypoints_3d, LandmarkIdx.RIGHT_HIP)
+    shoulder_mid = _midpoint_3d(ls, rs)
+    hip_mid = _midpoint_3d(lh, rh)
+    if shoulder_mid is None or hip_mid is None:
+        return None
+    trunk = (
+        shoulder_mid[0] - hip_mid[0],
+        shoulder_mid[1] - hip_mid[1],
+        shoulder_mid[2] - hip_mid[2],
+    )
+    trunk_len = math.sqrt(trunk[0] ** 2 + trunk[1] ** 2 + trunk[2] ** 2)
+    up_len = math.sqrt(up_vector[0] ** 2 + up_vector[1] ** 2 + up_vector[2] ** 2)
+    denom = trunk_len * up_len
+    if denom < 1e-6:
+        return None
+    cos_val = (trunk[0] * up_vector[0] + trunk[1] * up_vector[1] + trunk[2] * up_vector[2]) / denom
+    cos_val = max(-1.0, min(1.0, cos_val))
+    return math.degrees(math.acos(cos_val))
+
+
+def _hip_below_knee_3d(keypoints_3d: list[tuple[float, float, float]]) -> Optional[bool]:
+    """
+    Check if hip is below knee in 3D world coords.
+    MediaPipe world: Y increases downward, so hip_y > knee_y means hip is lower.
+    """
+    lh = _get_point_3d(keypoints_3d, LandmarkIdx.LEFT_HIP)
+    rh = _get_point_3d(keypoints_3d, LandmarkIdx.RIGHT_HIP)
+    lk = _get_point_3d(keypoints_3d, LandmarkIdx.LEFT_KNEE)
+    rk = _get_point_3d(keypoints_3d, LandmarkIdx.RIGHT_KNEE)
+    if lh is None or rh is None or lk is None or rk is None:
+        return None
+    hip_y = (lh[1] + rh[1]) / 2.0
+    knee_y = (lk[1] + rk[1]) / 2.0
+    return hip_y > knee_y
+
+
+def _pose_valid_3d(keypoints_3d: Optional[list[tuple[float, float, float]]]) -> bool:
+    """Validate 3D keypoints: required landmarks exist, reasonable limb lengths, no NaN."""
+    if not keypoints_3d:
+        return False
+    required = [
+        LandmarkIdx.LEFT_SHOULDER, LandmarkIdx.RIGHT_SHOULDER,
+        LandmarkIdx.LEFT_HIP, LandmarkIdx.RIGHT_HIP,
+        LandmarkIdx.LEFT_KNEE, LandmarkIdx.RIGHT_KNEE,
+        LandmarkIdx.LEFT_ANKLE, LandmarkIdx.RIGHT_ANKLE,
+    ]
+    for idx in required:
+        pt = _get_point_3d(keypoints_3d, idx)
+        if pt is None:
+            return False
+        if any(math.isnan(v) for v in pt):
+            return False
+    # Check limb lengths are in reasonable range (meters)
+    lh = _get_point_3d(keypoints_3d, LandmarkIdx.LEFT_HIP)
+    la = _get_point_3d(keypoints_3d, LandmarkIdx.LEFT_ANKLE)
+    rh = _get_point_3d(keypoints_3d, LandmarkIdx.RIGHT_HIP)
+    ra = _get_point_3d(keypoints_3d, LandmarkIdx.RIGHT_ANKLE)
+    if lh is None or la is None or rh is None or ra is None:
+        return False
+    left_leg = math.sqrt(sum((a - b) ** 2 for a, b in zip(lh, la)))
+    right_leg = math.sqrt(sum((a - b) ** 2 for a, b in zip(rh, ra)))
+    if left_leg < 0.1 or left_leg > 2.0 or right_leg < 0.1 or right_leg > 2.0:
+        return False
+    ratio = left_leg / right_leg if right_leg > 1e-6 else 0.0
+    return 0.5 <= ratio <= 2.0
 
 
 def _com_proxy(
@@ -366,8 +506,14 @@ def _compute_baseline(samples: list[dict[str, Any]]) -> dict[str, Optional[float
 def compute_frame_metrics(
     keypoints: Optional[list[tuple[float, float]]],
     baseline: Optional[dict[str, Optional[float]]] = None,
+    keypoints_3d: Optional[list[tuple[float, float, float]]] = None,
 ) -> dict[str, Optional[float] | Optional[bool]]:
-    """Compute per-frame biomechanics metrics from keypoints."""
+    """Compute per-frame biomechanics metrics from keypoints.
+
+    When ``keypoints_3d`` is provided and valid, knee angle, trunk angle,
+    hip-below-knee, and depth are computed from 3D world landmarks
+    (view-invariant).  COM/balance stays on 2D.
+    """
     if not keypoints:
         return {
             "knee_angle_deg": None,
@@ -381,17 +527,26 @@ def compute_frame_metrics(
             "form_ok": None,
             "pose_confidence": None,
         }
-    knee_angle = _knee_angle_deg(keypoints)
+
+    use_3d = keypoints_3d is not None and _pose_valid_3d(keypoints_3d)
+
+    if use_3d:
+        knee_angle = _knee_angle_deg_3d(keypoints_3d)  # type: ignore[arg-type]
+        trunk_angle = _trunk_angle_deg_3d(keypoints_3d)  # type: ignore[arg-type]
+        hip_below_knee = _hip_below_knee_3d(keypoints_3d)  # type: ignore[arg-type]
+    else:
+        knee_angle = _knee_angle_deg(keypoints)
+        trunk_angle = _trunk_angle_deg(keypoints)
+        hip_below_knee = _hip_below_knee(keypoints)
+
     knee_flexion = (180.0 - knee_angle) if knee_angle is not None else None
-    hip_angle = _hip_angle_deg(keypoints)
-    trunk_angle = _trunk_angle_deg(keypoints)
+    hip_angle = _hip_angle_deg(keypoints)  # stays 2D (informational)
+    # COM / balance always from 2D
     com = _com_proxy(keypoints)
     com_offset_norm, balance_ok = _balance_metrics(keypoints, com)
-    hip_below_knee = _hip_below_knee(keypoints)
     pose_conf = _pose_confidence(knee_angle, hip_angle, trunk_angle, com_offset_norm, hip_below_knee)
 
     base_trunk = baseline.get("trunk_angle_deg") if baseline else None
-    # Depth OK = parallel or below (user-dependent depth still counts as a rep; form quality only)
     depth_by_flexion = knee_flexion is not None and knee_flexion >= PARALLEL_KNEE_FLEXION_DEG
     trunk_threshold = min(
         MAX_TRUNK_ANGLE_DEG,
@@ -425,31 +580,64 @@ def detect_reps_batch(
     keypoints_series: list[Optional[list[tuple[float, float]]]],
     fps: float,
     min_frames_between_peaks: int = 10,
+    keypoints_3d_series: Optional[list[Optional[list[tuple[float, float, float]]]]] = None,
 ) -> tuple[list[dict[str, Any]], list[float]]:
     """
     Offline: detect reps from full keypoints series.
-    Returns (rep_annotations, hip_y_curve).
+    When ``keypoints_3d_series`` is provided, uses 3D knee flexion as the
+    rep signal (view-invariant) and passes 3D to metrics.
+    Returns (rep_annotations, signal_curve).
     """
+    have_3d = (
+        keypoints_3d_series is not None
+        and len(keypoints_3d_series) == len(keypoints_series)
+    )
+
+    # Build rep signal: try 3D knee flexion (degrees) first, fall back to 2D hip-Y-norm
+    use_3d_signal = False
+    if have_3d:
+        # Probe: count how many frames have valid 3D
+        n_valid_3d = sum(
+            1 for kp3 in keypoints_3d_series  # type: ignore[union-attr]
+            if kp3 is not None and _pose_valid_3d(kp3)
+        )
+        # Use 3D signal only if majority of frames have valid 3D
+        n_total = len(keypoints_series)
+        use_3d_signal = n_valid_3d > n_total * 0.3 and n_valid_3d >= 5
+
     ys = []
-    for kp in keypoints_series:
-        y = _hip_y_norm(kp) if kp else np.nan
-        ys.append(y)
+    for i, kp in enumerate(keypoints_series):
+        if use_3d_signal:
+            kp3 = keypoints_3d_series[i] if keypoints_3d_series else None  # type: ignore[index]
+            if kp3 is not None and _pose_valid_3d(kp3):
+                ka = _knee_angle_deg_3d(kp3)
+                flex = (180.0 - ka) if ka is not None else np.nan
+                ys.append(flex)
+            else:
+                ys.append(np.nan)
+        else:
+            y = _hip_y_norm(kp) if kp else np.nan
+            ys.append(y)
     ys = np.array(ys, dtype=float)
     valid = np.isfinite(ys)
     if not np.any(valid):
         return [], ys.tolist()
-    reps = []
+
     # Calibration baseline from early valid frames
     calib_samples: list[dict[str, Any]] = []
-    for kp in keypoints_series[: max(10, CALIBRATION_FRAMES * 2)]:
+    for idx in range(min(len(keypoints_series), max(10, CALIBRATION_FRAMES * 2))):
+        kp = keypoints_series[idx]
         if not _pose_valid(kp):
             continue
-        m = compute_frame_metrics(kp, baseline=None)
+        kp3 = keypoints_3d_series[idx] if have_3d and keypoints_3d_series else None  # type: ignore[index]
+        m = compute_frame_metrics(kp, baseline=None, keypoints_3d=kp3)
         kf = m.get("knee_flexion_deg")
         if kf is None or kf > STANDING_KNEE_FLEXION_MAX:
             continue
         calib_samples.append(m)
     baseline = _compute_baseline(calib_samples) if calib_samples else None
+
+    reps: list[dict[str, Any]] = []
     n = len(ys)
     from scipy.signal import find_peaks
     ys_smooth = _median_filter(ys, HIP_SMOOTH_WINDOW)
@@ -463,14 +651,14 @@ def detect_reps_batch(
         in_between = peaks[(peaks > t1) & (peaks < t2)]
         if len(in_between) == 0:
             continue
-        # Hip Y: peaks = squat bottom, troughs = standing. Use peak for depth metrics.
+        # Peaks = squat bottom (max flexion / highest hip-y), troughs = standing.
         bottom_f = int(in_between[np.argmax(ys_smooth[in_between])])
         start_f, end_f = int(t1), int(t2)
         kp_bottom = keypoints_series[bottom_f] if bottom_f < n else None
-        metrics = compute_frame_metrics(kp_bottom, baseline=baseline)
+        kp3_bottom = (keypoints_3d_series[bottom_f] if have_3d and keypoints_3d_series and bottom_f < n else None)  # type: ignore[index]
+        metrics = compute_frame_metrics(kp_bottom, baseline=baseline, keypoints_3d=kp3_bottom)
         duration_sec = (end_f - start_f) / fps if fps > 0 else None
         speed_proxy = 1.0 / duration_sec if duration_sec and duration_sec > 0 else None
-        # Count every rep; depth_ok in metrics indicates form (parallel or below)
         pose_conf = metrics.get("pose_confidence")
         needs_review = pose_conf is None or pose_conf < 0.6
         rep = {
@@ -490,10 +678,13 @@ def detect_reps_batch(
 
 class IncrementalRepDetector:
     """
-    Sliding-window rep detection from rolling hip-y signal.
-    Confirms rep on peak -> trough -> peak; computes metrics at bottom.
-    Requires minimum frames between confirmed reps to avoid counting the same
-    rep multiple times as the window slides.
+    Sliding-window rep detection.
+    When 3D world landmarks are available, uses **knee flexion** (degrees) as
+    the rep signal — view-invariant.  Falls back to hip-Y (2D) otherwise.
+
+    The signal mode (3D knee-flexion vs 2D hip-Y) is decided once during
+    calibration and stays fixed for the session to avoid mixing scales in the
+    sliding-window buffer.
     """
 
     def __init__(
@@ -507,8 +698,9 @@ class IncrementalRepDetector:
         self.min_pt = min_frames_peak_to_trough
         self.min_tp = min_frames_trough_to_peak
         self.min_frames_between_reps = min_frames_between_reps
-        self.hip_y_buffer: list[float] = []
+        self.signal_buffer: list[float] = []
         self.keypoint_buffer: list[Optional[list[tuple[float, float]]]] = []
+        self.keypoint_3d_buffer: list[Optional[list[tuple[float, float, float]]]] = []
         self.rep_count = 0
         self.last_phase: str = "TOP_READY"
         self.confirmed_reps: list[dict[str, Any]] = []
@@ -518,14 +710,19 @@ class IncrementalRepDetector:
         self._calib_samples: list[dict[str, Any]] = []
         self.baseline: Optional[dict[str, Optional[float]]] = None
         self.calibrated = False
+        # Signal mode is decided once during calibration and stays fixed.
+        # True = 3D knee flexion (degrees), False = 2D hip-Y-norm.
+        self._use_3d_signal: bool = False
+        self._calib_3d_count: int = 0
         self._current_start_frame: Optional[int] = None
         self._current_bottom_frame: Optional[int] = None
         self._current_bottom_metrics: Optional[dict[str, Any]] = None
         self._current_bottom_y: Optional[float] = None
 
     def reset(self) -> None:
-        self.hip_y_buffer.clear()
+        self.signal_buffer.clear()
         self.keypoint_buffer.clear()
+        self.keypoint_3d_buffer.clear()
         self.rep_count = 0
         self.last_phase = "TOP_READY"
         self.confirmed_reps.clear()
@@ -535,34 +732,59 @@ class IncrementalRepDetector:
         self._calib_samples.clear()
         self.baseline = None
         self.calibrated = False
+        self._use_3d_signal = False
+        self._calib_3d_count = 0
         self._current_start_frame = None
         self._current_bottom_frame = None
         self._current_bottom_metrics = None
         self._current_bottom_y = None
+
+    def _signal_value(
+        self,
+        keypoints: Optional[list[tuple[float, float]]],
+        keypoints_3d: Optional[list[tuple[float, float, float]]],
+    ) -> float:
+        """Compute the rep-phase signal value using the locked signal mode."""
+        if self._use_3d_signal and keypoints_3d is not None and _pose_valid_3d(keypoints_3d):
+            ka = _knee_angle_deg_3d(keypoints_3d)
+            return (180.0 - ka) if ka is not None else np.nan
+        # 2D fallback (always used when _use_3d_signal is False, or 3D is invalid)
+        return _hip_y_norm(keypoints) if keypoints else np.nan
 
     def push(
         self,
         frame_idx: int,
         keypoints: Optional[list[tuple[float, float]]],
         fps: float,
+        keypoints_3d: Optional[list[tuple[float, float, float]]] = None,
     ) -> dict[str, Any]:
         """
         Push one frame. Returns current state for overlay:
         rep_count, knee_flexion_deg, trunk_angle_deg, com_offset_norm, speed_proxy, status.
         """
         valid_pose = _pose_valid(keypoints)
-        y = _hip_y_norm(keypoints) if keypoints else np.nan
-        self.hip_y_buffer.append(y if np.isfinite(y) else np.nan)
+        valid_3d = keypoints_3d is not None and _pose_valid_3d(keypoints_3d)
+
+        # Build the per-frame signal value using the locked signal mode
+        y = self._signal_value(keypoints, keypoints_3d)
+
+        self.signal_buffer.append(y if np.isfinite(y) else np.nan)
         self.keypoint_buffer.append(keypoints)
+        self.keypoint_3d_buffer.append(keypoints_3d)
 
-        if len(self.hip_y_buffer) > self.window_size:
-            self.hip_y_buffer.pop(0)
+        if len(self.signal_buffer) > self.window_size:
+            self.signal_buffer.pop(0)
             self.keypoint_buffer.pop(0)
+            self.keypoint_3d_buffer.pop(0)
 
-        buf = np.array(self.hip_y_buffer, dtype=float)
+        buf = np.array(self.signal_buffer, dtype=float)
         valid = np.isfinite(buf)
         n = len(buf)
-        metrics = compute_frame_metrics(keypoints if valid_pose else None, baseline=self.baseline)
+        metrics = compute_frame_metrics(
+            keypoints if valid_pose else None,
+            baseline=self.baseline,
+            keypoints_3d=keypoints_3d if valid_3d else None,
+        )
         speed = None
         status = "Tracking"
 
@@ -578,16 +800,28 @@ class IncrementalRepDetector:
             }
 
         if valid_pose and not self.calibrated:
-            m = compute_frame_metrics(keypoints, baseline=None)
+            m = compute_frame_metrics(
+                keypoints, baseline=None,
+                keypoints_3d=keypoints_3d if valid_3d else None,
+            )
             kf = m.get("knee_flexion_deg")
             if kf is not None and kf <= STANDING_KNEE_FLEXION_MAX:
                 self._calib_samples.append(m)
+                if valid_3d:
+                    self._calib_3d_count += 1
             if len(self._calib_samples) >= CALIBRATION_FRAMES:
                 self.baseline = _compute_baseline(self._calib_samples)
                 self.calibrated = True
-                self.hip_y_buffer.clear()
+                # Lock signal mode: use 3D if majority of calibration had valid 3D
+                self._use_3d_signal = self._calib_3d_count > len(self._calib_samples) // 2
+                self.signal_buffer.clear()
                 self.keypoint_buffer.clear()
-                logger.info("live_rep: calibrated (baseline knee_flex=%s)", self.baseline.get("knee_flexion_deg"))
+                self.keypoint_3d_buffer.clear()
+                logger.info(
+                    "live_rep: calibrated (baseline knee_flex=%s, use_3d_signal=%s)",
+                    self.baseline.get("knee_flexion_deg"),
+                    self._use_3d_signal,
+                )
                 return {
                     "rep_count": self.rep_count,
                     "knee_flexion_deg": metrics.get("knee_flexion_deg"),
@@ -674,7 +908,10 @@ class IncrementalRepDetector:
                 if y_curr > bottom_thresh:
                     self.last_phase = "BOTTOM"
                     self._current_bottom_frame = frame_idx
-                    self._current_bottom_metrics = compute_frame_metrics(keypoints, baseline=self.baseline)
+                    self._current_bottom_metrics = compute_frame_metrics(
+                        keypoints, baseline=self.baseline,
+                        keypoints_3d=keypoints_3d if valid_3d else None,
+                    )
                     self._current_bottom_y = y_curr
                     status = "Bottom"
             elif self.last_phase == "BOTTOM":
@@ -682,7 +919,10 @@ class IncrementalRepDetector:
                 if self._current_bottom_y is None or y_curr > self._current_bottom_y:
                     self._current_bottom_y = y_curr
                     self._current_bottom_frame = frame_idx
-                    self._current_bottom_metrics = compute_frame_metrics(keypoints, baseline=self.baseline)
+                    self._current_bottom_metrics = compute_frame_metrics(
+                        keypoints, baseline=self.baseline,
+                        keypoints_3d=keypoints_3d if valid_3d else None,
+                    )
                 if y_curr < (bottom_thresh - hysteresis):
                     self.last_phase = "ASCENT"
                     status = "Ascending"
@@ -699,7 +939,6 @@ class IncrementalRepDetector:
                         self._last_confirmed_end_frame = end_f
                         duration_sec = (end_f - start_f) / fps if fps > 0 else None
                         speed = (1.0 / duration_sec) if duration_sec and duration_sec > 0 else None
-                        # Count every rep; depth_ok in metrics is for form (parallel or below) only
                         pose_conf = self._current_bottom_metrics.get("pose_confidence")
                         needs_review = pose_conf is None or pose_conf < 0.6
                         self.rep_count += 1
@@ -747,5 +986,23 @@ def smooth_keypoints_ema(
         return current
     return [
         (alpha * curr[0] + (1 - alpha) * prev[0], alpha * curr[1] + (1 - alpha) * prev[1])
+        for curr, prev in zip(current, previous)
+    ]
+
+
+def smooth_keypoints_ema_3d(
+    current: list[tuple[float, float, float]],
+    previous: Optional[list[tuple[float, float, float]]],
+    alpha: float = 0.4,
+) -> list[tuple[float, float, float]]:
+    """One-step EMA smoothing for 3D keypoints."""
+    if previous is None or len(previous) != len(current):
+        return current
+    return [
+        (
+            alpha * curr[0] + (1 - alpha) * prev[0],
+            alpha * curr[1] + (1 - alpha) * prev[1],
+            alpha * curr[2] + (1 - alpha) * prev[2],
+        )
         for curr, prev in zip(current, previous)
     ]

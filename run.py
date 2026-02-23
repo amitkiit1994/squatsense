@@ -40,11 +40,19 @@ def run_offline(video_path: str, output_dir: str = "outputs") -> None:
     os.makedirs(output_dir, exist_ok=True)
     pose = create_pose_detector()
     keypoints_series = []
+    keypoints_3d_series = []
     fps = 30.0
     for frame_bgr, frame_idx, fps in video_frames(video_path):
-        kp = process_frame(frame_bgr, pose)
-        keypoints_series.append(kp)
-    reps, hip_y_curve = detect_reps_batch(keypoints_series, fps)
+        pose_result = process_frame(frame_bgr, pose)
+        if pose_result is not None:
+            keypoints_series.append(pose_result["keypoints_2d"])
+            keypoints_3d_series.append(pose_result["keypoints_3d"])
+        else:
+            keypoints_series.append(None)
+            keypoints_3d_series.append(None)
+    reps, signal_curve = detect_reps_batch(
+        keypoints_series, fps, keypoints_3d_series=keypoints_3d_series,
+    )
     # Save keypoints and metrics for consistency with live
     import json
     kp_out = []

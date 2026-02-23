@@ -16,7 +16,7 @@ import numpy as np
 from .io_stream import webcam_frames
 from .overlay import draw_realtime_overlay
 from .pose import create_pose_detector, process_frame
-from .reps import IncrementalRepDetector, smooth_keypoints_ema
+from .reps import IncrementalRepDetector, smooth_keypoints_ema, smooth_keypoints_ema_3d
 from .ai_coach import ai_coach_feedback
 
 # Target resize width for faster inference
@@ -50,8 +50,10 @@ def run_live_pipeline(
     )
 
     keypoints_series: list[Optional[list[tuple[float, float]]]] = []
+    keypoints_3d_series: list[Optional[list[tuple[float, float, float]]]] = []
     fps_actual = target_fps
     prev_keypoints: Optional[list[tuple[float, float]]] = None
+    prev_keypoints_3d: Optional[list[tuple[float, float, float]]] = None
     process_every_n = 1
     last_pose_time = time.perf_counter()
     message: Optional[str] = None
@@ -88,10 +90,13 @@ def run_live_pipeline(
             # Process every Nth frame; reuse last keypoints on skipped frames
             run_pose = (frame_count % process_every_n == 0)
             kp_for_buffer: Optional[list[tuple[float, float]]] = None
+            kp3_for_buffer: Optional[list[tuple[float, float, float]]] = None
             if run_pose:
-                kp_raw = process_frame(small, pose)
-                if kp_raw is not None:
+                pose_result = process_frame(small, pose)
+                if pose_result is not None:
                     last_pose_time = time.perf_counter()
+                    kp_raw = pose_result["keypoints_2d"]
+                    kp3_raw = pose_result["keypoints_3d"]
                     kp_orig = (
                         [(x / scale, y / scale) for x, y in kp_raw]
                         if scale != 1.0
@@ -100,13 +105,22 @@ def run_live_pipeline(
                     kp_smooth = smooth_keypoints_ema(kp_orig, prev_keypoints, SMOOTH_ALPHA)
                     prev_keypoints = kp_smooth
                     kp_for_buffer = kp_smooth
+                    if kp3_raw is not None:
+                        kp3_smooth = smooth_keypoints_ema_3d(kp3_raw, prev_keypoints_3d, SMOOTH_ALPHA)
+                        prev_keypoints_3d = kp3_smooth
+                        kp3_for_buffer = kp3_smooth
+                    else:
+                        kp3_for_buffer = prev_keypoints_3d
                 else:
                     kp_for_buffer = prev_keypoints
+                    kp3_for_buffer = prev_keypoints_3d
             else:
                 kp_for_buffer = prev_keypoints
+                kp3_for_buffer = prev_keypoints_3d
 
             keypoints_series.append(kp_for_buffer)
-            state = rep_detector.push(frame_idx, kp_for_buffer, fps_actual)
+            keypoints_3d_series.append(kp3_for_buffer)
+            state = rep_detector.push(frame_idx, kp_for_buffer, fps_actual, keypoints_3d=kp3_for_buffer)
             if state["rep_count"] > last_rep_count:
                 last_rep_count = state["rep_count"]
                 now = time.perf_counter()
@@ -166,6 +180,7 @@ def run_live_pipeline(
             if key == ord("r"):
                 rep_detector.reset()
                 keypoints_series.clear()
+                keypoints_3d_series.clear()
                 message = None
             if key == ord("s"):
                 snap_path = os.path.join(output_dir, f"snapshot_{frame_idx}.jpg")

@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { ApiResponseError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -49,6 +50,11 @@ export default function RegisterPage() {
 
       router.push("/onboarding/profile");
     } catch (err) {
+      if (err instanceof ApiResponseError && err.status === 403) {
+        // Not on the invite list — send them to the waitlist
+        router.push("/?invite=denied");
+        return;
+      }
       const message = err instanceof Error ? err.message : "Registration failed";
       setError(message);
       setSubmitting(false);
@@ -204,7 +210,11 @@ export default function RegisterPage() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-zinc-400">
+          <p className="mt-4 text-center text-xs text-zinc-500">
+            Registration is invite-only during early access.
+          </p>
+
+          <div className="mt-4 text-center text-sm text-zinc-400">
             Already have an account?{" "}
             <Link
               href="/login"

@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    PASSWORD_RESET_EXPIRE_MINUTES: int = 15
+
+    # ── Registration allowlist ────────────────────────────────────────
+    # Comma-separated emails allowed to register. Empty = open registration.
+    ALLOWED_EMAILS: str = ""
+
+    # ── Frontend URL (for email links) ────────────────────────────────
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # ── CORS ──────────────────────────────────────────────────────────────
     # Override via CORS_ORIGINS env var (JSON array or comma-separated).
@@ -43,6 +51,14 @@ class Settings(BaseSettings):
                 return json.loads(v)
             return [s.strip() for s in v.split(",") if s.strip()]
         return [str(v)]
+
+    @property
+    def allowed_emails_list(self) -> list[str]:
+        """Parse ALLOWED_EMAILS csv string into a lowercase list."""
+        v = self.ALLOWED_EMAILS.strip()
+        if not v:
+            return []
+        return [e.strip().lower() for e in v.split(",") if e.strip()]
 
     # ── AI Coach ──────────────────────────────────────────────────────────
     AI_COACH_ENABLED: bool = False

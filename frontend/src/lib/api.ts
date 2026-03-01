@@ -218,6 +218,32 @@ export async function logout(): Promise<void> {
   clearTokens();
 }
 
+/**
+ * Request a password reset email.
+ */
+export async function forgotPassword(
+  email: string,
+): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+/**
+ * Reset password using a token from the reset email.
+ * Returns JWT tokens (auto-login).
+ */
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+): Promise<TokenResponse> {
+  return apiFetch<TokenResponse>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, new_password: newPassword }),
+  });
+}
+
 // =========================================================================
 // USER endpoints  (/api/v1/users)
 // =========================================================================

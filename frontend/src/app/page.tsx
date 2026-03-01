@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 /* ------------------------------------------------------------------ */
 /*  Waitlist form (reused in hero + bottom CTA)                       */
@@ -151,9 +153,25 @@ function MovementCard({ name, children }: { name: string; children: React.ReactN
 /* ------------------------------------------------------------------ */
 /*  Page                                                              */
 /* ------------------------------------------------------------------ */
+function InviteBanner() {
+  const searchParams = useSearchParams();
+  const denied = searchParams.get("invite") === "denied";
+  if (!denied) return null;
+  return (
+    <div className="relative z-20 border-b border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-300">
+      Registration is currently invite-only. Join the waitlist below and we&apos;ll let you know when your spot opens up.
+    </div>
+  );
+}
+
 export default function WaitlistPage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-zinc-950 text-zinc-50 bg-grid">
+
+      {/* ── Invite-denied banner ────────────────────────────────── */}
+      <Suspense>
+        <InviteBanner />
+      </Suspense>
 
       {/* ── Animated aurora background ───────────────────────────── */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
@@ -217,6 +235,15 @@ export default function WaitlistPage() {
           <WaitlistForm id="hero-form" glow />
           <p className="mt-3 text-xs text-zinc-500">
             Join the waitlist for early access. No spam, ever.
+          </p>
+          <p className="mt-2 text-xs text-zinc-500">
+            Already invited?{" "}
+            <a
+              href="/login"
+              className="font-medium text-violet-400 hover:text-violet-300 transition-colors"
+            >
+              Sign in
+            </a>
           </p>
         </div>
 

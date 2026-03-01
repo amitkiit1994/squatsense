@@ -40,3 +40,18 @@ class RefreshRequest(BaseModel):
     model_config = {"strict": True}
 
     refresh_token: str = Field(..., description="Valid refresh JWT")
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Payload for requesting a password reset email."""
+
+    email: EmailStr = Field(..., description="Account email address")
+
+
+class ResetPasswordRequest(BaseModel):
+    """Payload for resetting password with a token."""
+
+    token: str = Field(..., description="Password reset token from email")
+    new_password: str = Field(
+        ..., min_length=8, max_length=128, description="New password"
+    )

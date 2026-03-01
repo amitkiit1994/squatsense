@@ -35,9 +35,11 @@ export interface UseCameraReturn {
   captureFrame: () => Promise<Blob | null>;
   /**
    * Load a local video file as the source instead of the camera.
-   * The video loops and `captureFrame()` works the same way.
+   * `captureFrame()` works the same way as with a live camera.
+   * @param options.loop - Whether to loop the video (default: false).
+   * @param options.onEnded - Callback fired when the video finishes playing.
    */
-  loadVideoFile: (file: File) => void;
+  loadVideoFile: (file: File, options?: { loop?: boolean; onEnded?: () => void }) => void;
 }
 
 export function useCamera(): UseCameraReturn {
@@ -208,44 +210,54 @@ export function useCamera(): UseCameraReturn {
 
   /**
    * Load a video file instead of using the camera.
-   * Sets the video element's src to a blob URL and loops it.
+   * Sets the video element's src to a blob URL.
+   * @param file - The video file to load.
+   * @param options.loop - Whether to loop the video (default: false).
+   * @param options.onEnded - Callback fired when the video finishes playing.
    */
-  const loadVideoFile = useCallback((file: File) => {
-    setError(null);
+  const loadVideoFile = useCallback(
+    (file: File, options?: { loop?: boolean; onEnded?: () => void }) => {
+      setError(null);
 
-    // Stop any existing camera stream
-    if (streamRef.current) {
-      for (const track of streamRef.current.getTracks()) {
-        track.stop();
+      // Stop any existing camera stream
+      if (streamRef.current) {
+        for (const track of streamRef.current.getTracks()) {
+          track.stop();
+        }
+        streamRef.current = null;
       }
-      streamRef.current = null;
-    }
 
-    const video = videoRef.current;
-    if (!video) {
-      setError("Video element not available.");
-      return;
-    }
+      const video = videoRef.current;
+      if (!video) {
+        setError("Video element not available.");
+        return;
+      }
 
-    // Clear camera srcObject so the file src takes effect
-    video.srcObject = null;
+      // Clear camera srcObject so the file src takes effect
+      video.srcObject = null;
 
-    const url = URL.createObjectURL(file);
-    video.src = url;
-    video.loop = true;
-    video.muted = true;
-    video.playsInline = true;
+      const url = URL.createObjectURL(file);
+      video.src = url;
+      video.loop = options?.loop ?? false;
+      video.muted = true;
+      video.playsInline = true;
 
-    video.onloadeddata = () => {
-      video.play().catch(() => {});
-      setIsActive(true);
-    };
+      video.onloadeddata = () => {
+        video.play().catch(() => {});
+        setIsActive(true);
+      };
 
-    video.onerror = () => {
-      setError("Failed to load video file.");
-      URL.revokeObjectURL(url);
-    };
-  }, []);
+      video.onended = () => {
+        options?.onEnded?.();
+      };
+
+      video.onerror = () => {
+        setError("Failed to load video file.");
+        URL.revokeObjectURL(url);
+      };
+    },
+    [],
+  );
 
   /**
    * Cleanup on unmount: stop the camera so the hardware is released.

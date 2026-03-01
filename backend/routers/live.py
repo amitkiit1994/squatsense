@@ -603,6 +603,10 @@ async def live_analysis(
                     await websocket.close()
                     return
 
+                if command == "ping":
+                    await websocket.send_json({"type": "pong"})
+                    continue
+
                 # For unknown commands, just continue
                 continue
 

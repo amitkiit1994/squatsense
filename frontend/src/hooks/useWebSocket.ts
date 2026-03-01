@@ -236,6 +236,9 @@ export function useWebSocket(): UseWebSocketReturn {
           };
         }
 
+        // Mark as intentional so auto-reconnect doesn't kick in
+        // when the server closes the WS after sending the summary.
+        wsRef.current?.markClosing();
         wsRef.current?.sendCommand("stop");
       });
     },

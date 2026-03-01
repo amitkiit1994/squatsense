@@ -7,7 +7,7 @@
  * fatigue data.
  *
  * Implements automatic reconnection with exponential backoff (up to
- * 5 retries) and a clean disconnect API.
+ * 5 retries), periodic keep-alive pings, and a clean disconnect API.
  */
 
 import type { WebSocketMessage } from "@/lib/types";
@@ -24,6 +24,7 @@ const WS_BASE =
 
 const MAX_RETRIES = 5;
 const BASE_BACKOFF_MS = 1_000; // 1 second initial backoff
+const PING_INTERVAL_MS = 15_000; // send ping every 15s to keep connection alive
 
 // ---------------------------------------------------------------------------
 // SquatSenseWS class
@@ -43,6 +44,9 @@ export class SquatSenseWS {
 
   /** Timer handle for the scheduled reconnect. */
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Timer handle for periodic keep-alive pings. */
+  private pingTimer: ReturnType<typeof setInterval> | null = null;
 
   /** Whether the user explicitly called disconnect(). */
   private intentionalClose = false;
@@ -112,6 +116,15 @@ export class SquatSenseWS {
   }
 
   /**
+   * Mark the next server-initiated close as intentional so auto-reconnect
+   * is suppressed. Use before sending "stop" — the server will close
+   * the WS after sending the summary, and we don't want to reconnect.
+   */
+  markClosing(): void {
+    this.intentionalClose = true;
+  }
+
+  /**
    * Whether the socket is currently open and ready to send data.
    */
   get isConnected(): boolean {
@@ -138,6 +151,7 @@ export class SquatSenseWS {
     this.ws.onopen = () => {
       // Successful connection resets the retry counter
       this.retryCount = 0;
+      this.startPing();
       this.onOpen();
     };
 
@@ -154,6 +168,7 @@ export class SquatSenseWS {
     };
 
     this.ws.onclose = (event: CloseEvent) => {
+      this.stopPing();
       this.onClose(event);
 
       if (!this.intentionalClose) {
@@ -164,6 +179,28 @@ export class SquatSenseWS {
     this.ws.onerror = (event: Event) => {
       this.onError(event);
     };
+  }
+
+  /**
+   * Start sending periodic ping messages to prevent CDN/proxy idle timeout.
+   */
+  private startPing(): void {
+    this.stopPing();
+    this.pingTimer = setInterval(() => {
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({ command: "ping" }));
+      }
+    }, PING_INTERVAL_MS);
+  }
+
+  /**
+   * Stop the keep-alive ping timer.
+   */
+  private stopPing(): void {
+    if (this.pingTimer !== null) {
+      clearInterval(this.pingTimer);
+      this.pingTimer = null;
+    }
   }
 
   /**
@@ -188,6 +225,8 @@ export class SquatSenseWS {
    * Tear down the current socket and cancel any pending reconnect timer.
    */
   private cleanupConnection(): void {
+    this.stopPing();
+
     if (this.reconnectTimer !== null) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;

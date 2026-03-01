@@ -769,10 +769,15 @@ function WorkoutContent() {
     stopCamera();
 
     try {
-      const result = await apiFetch<{ id: string }>(`/sessions/${sessionId}/end`, {
+      const result = await apiFetch<{ id?: string; discarded?: boolean }>(`/sessions/${sessionId}/end`, {
         method: "POST",
       });
-      router.push(`/session/${result.id ?? sessionId}`);
+      if (result.discarded) {
+        // No reps recorded — session was deleted server-side
+        router.push("/dashboard");
+      } else {
+        router.push(`/session/${result.id ?? sessionId}`);
+      }
     } catch (error) {
       console.error("Failed to end workout:", error);
       router.push(`/session/${sessionId}`);

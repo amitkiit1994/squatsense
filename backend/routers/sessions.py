@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -403,6 +404,20 @@ async def end_session(
 
     session.total_sets = total_sets
     session.total_reps = total_reps
+
+    # If no reps were recorded, delete the empty session instead of saving it
+    if total_reps == 0:
+        logger.info(
+            "end_session %s: 0 reps recorded — deleting empty session",
+            session_id,
+        )
+        await db.delete(session)
+        await db.flush()
+        return JSONResponse(
+            status_code=200,
+            content={"detail": "Session discarded — no reps recorded.", "discarded": True},
+        )
+
     if avg_form_score is not None:
         session.avg_form_score = avg_form_score
 

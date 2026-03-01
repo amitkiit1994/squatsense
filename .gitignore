@@ -1,13 +1,32 @@
+# Python
 .venv/
-.env
 __pycache__/
 *.pyc
+*.egg-info/
+
+# Environment / secrets
+.env
+.env.local
+
+# Backend outputs (generated at runtime)
 outputs/*.json
 outputs/*.mp4
 outputs/*.png
 outputs/*.html
 outputs/pose_landmarker*.task
 outputs/**/
+backend/outputs/pose_landmarker*.task
 uploads/
-*.egg-info/
+
+# Frontend / Node
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# IDE / OS
+.DS_Store
+*.swp
+
+# Deployment
 .vercel

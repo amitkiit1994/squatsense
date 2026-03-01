@@ -49,6 +49,9 @@ export class SquatSenseWS {
 
   // -- Callbacks (set by the consumer) --
 
+  /** Invoked when the socket opens (including reconnections). */
+  onOpen: () => void = () => {};
+
   /** Invoked with every JSON message from the server. */
   onMessage: MessageHandler = () => {};
 
@@ -135,6 +138,7 @@ export class SquatSenseWS {
     this.ws.onopen = () => {
       // Successful connection resets the retry counter
       this.retryCount = 0;
+      this.onOpen();
     };
 
     this.ws.onmessage = (event: MessageEvent) => {

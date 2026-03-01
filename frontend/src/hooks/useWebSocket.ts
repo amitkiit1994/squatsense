@@ -144,6 +144,10 @@ export function useWebSocket(): UseWebSocketReturn {
 
       const ws = new SquatSenseWS();
 
+      ws.onOpen = () => {
+        setIsConnected(true);
+      };
+
       ws.onMessage = handleMessage;
 
       ws.onClose = () => {
@@ -157,10 +161,6 @@ export function useWebSocket(): UseWebSocketReturn {
 
       ws.connect(exerciseType, sessionId);
       wsRef.current = ws;
-
-      // We set connected immediately -- the WS class will fire onClose
-      // if the connection fails, which resets the flag.
-      setIsConnected(true);
     },
     [handleMessage],
   );

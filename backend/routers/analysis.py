@@ -177,7 +177,12 @@ def _run_analysis(job_id: str, video_path: str, exercise_type: str) -> None:
                 "trunk_ok": rep_data.get("trunk_ok"),
                 "knee_flexion_deg": rep_data.get("knee_flexion_deg"),
                 "trunk_angle_deg": rep_data.get("trunk_angle_deg"),
+                "com_offset_norm": rep_data.get("com_offset_norm"),
+                "speed_proxy": rep_data.get("speed_proxy"),
                 "pose_confidence": rep_data.get("pose_confidence"),
+                "eccentric_ms": rep_data.get("eccentric_ms"),
+                "pause_ms": rep_data.get("pause_ms"),
+                "concentric_ms": rep_data.get("concentric_ms"),
             }
             scored_rep.update(scores)
             scored_reps.append(scored_rep)

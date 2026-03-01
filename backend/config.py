@@ -1,8 +1,9 @@
 """Application configuration via pydantic-settings."""
 
+import json
 from typing import Optional
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,6 +31,18 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
     ]
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def _parse_cors(cls, v: object) -> list[str]:
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            v = v.strip()
+            if v.startswith("["):
+                return json.loads(v)
+            return [s.strip() for s in v.split(",") if s.strip()]
+        return [str(v)]
 
     # ── AI Coach ──────────────────────────────────────────────────────────
     AI_COACH_ENABLED: bool = False

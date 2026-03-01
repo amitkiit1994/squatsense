@@ -179,6 +179,25 @@ class SessionResponse(BaseModel):
     )
 
 
+class PopulateSetRequest(BaseModel):
+    """Payload to populate a session set from a completed analysis job."""
+
+    set_number: int = Field(..., ge=1, description="1-based set index")
+    analysis_result: dict = Field(
+        ..., description="The 'result' object from a completed AnalysisJob"
+    )
+
+
+class PopulateSetResponse(BaseModel):
+    """Summary returned after populating a set from analysis."""
+
+    set_number: int
+    reps: int
+    avg_form_score: Optional[float] = None
+    fatigue_index: Optional[float] = None
+    fatigue_risk: Optional[str] = None
+
+
 class SessionListItem(BaseModel):
     """Compact session info used in paginated list responses."""
 

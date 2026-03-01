@@ -20,6 +20,8 @@ logger = logging.getLogger("squatsense.sessions")
 from backend.models.rep import Rep
 from backend.models.session import Session, Set
 from backend.schemas.session import (
+    PopulateSetRequest,
+    PopulateSetResponse,
     SessionCreate,
     SessionListItem,
     SessionListResponse,
@@ -474,6 +476,114 @@ async def end_session(
     )
 
     return _build_session_response(session)
+
+
+# ---------------------------------------------------------------------------
+# POST /{session_id}/populate-set-from-analysis -- add a set from video upload
+# ---------------------------------------------------------------------------
+
+@router.post(
+    "/{session_id}/populate-set-from-analysis",
+    response_model=PopulateSetResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Populate a set from video analysis results",
+)
+async def populate_set_from_analysis(
+    session_id: UUID,
+    body: PopulateSetRequest,
+    user_id: UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+) -> PopulateSetResponse:
+    """Create a Set and its Reps from a completed analysis job result.
+
+    Used by the video-upload flow: each uploaded video becomes one set.
+    """
+    logger.info(
+        "POST populate_set_from_analysis: session=%s set=%d user=%s",
+        session_id, body.set_number, user_id,
+    )
+    session = await _get_user_session(session_id, user_id, db)
+
+    result = body.analysis_result
+    reps_data = result.get("reps", [])
+
+    if not reps_data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Analysis result contains no reps.",
+        )
+
+    # Create the Set
+    new_set = Set(
+        session_id=session.id,
+        set_number=body.set_number,
+        target_reps=len(reps_data),
+        actual_reps=len(reps_data),
+        load_used=session.load_used,
+    )
+    db.add(new_set)
+    await db.flush()  # get new_set.id
+
+    # Create Rep records
+    composite_scores: list[float] = []
+    for rd in reps_data:
+        dur = rd.get("duration_sec")
+        rep = Rep(
+            set_id=new_set.id,
+            session_id=session.id,
+            rep_number=rd.get("rep_number", 1),
+            duration_ms=int(dur * 1000) if dur else None,
+            eccentric_ms=rd.get("eccentric_ms"),
+            pause_ms=rd.get("pause_ms"),
+            concentric_ms=rd.get("concentric_ms"),
+            composite_score=rd.get("composite_score"),
+            depth_score=rd.get("depth_score"),
+            stability_score=rd.get("stability_score"),
+            symmetry_score=rd.get("symmetry_score"),
+            tempo_score=rd.get("tempo_score"),
+            rom_score=rd.get("rom_score"),
+            primary_angle_deg=rd.get("knee_flexion_deg"),
+            trunk_angle_deg=rd.get("trunk_angle_deg"),
+            com_offset_norm=rd.get("com_offset_norm"),
+            speed_proxy=rd.get("speed_proxy"),
+            depth_ok=rd.get("depth_ok"),
+            form_ok=rd.get("form_ok"),
+            balance_ok=rd.get("balance_ok"),
+            timestamp=datetime.now(timezone.utc),
+        )
+        db.add(rep)
+        if rd.get("composite_score") is not None:
+            composite_scores.append(rd["composite_score"])
+
+    # Compute set-level aggregates
+    avg_form = (
+        round(sum(composite_scores) / len(composite_scores), 1)
+        if composite_scores else None
+    )
+    new_set.avg_form_score = avg_form
+
+    # Compute fatigue for this set
+    from backend.services.fatigue import FatigueEngine
+    fatigue_engine = FatigueEngine()
+    fatigue_result = fatigue_engine.compute_set_fatigue(reps_data)
+    new_set.fatigue_index = fatigue_result.get("fatigue_index")
+    new_set.fatigue_risk = fatigue_result.get("fatigue_risk")
+
+    db.add(new_set)
+    await db.flush()
+
+    logger.info(
+        "populate_set_from_analysis: session=%s set=%d reps=%d avg_form=%s fatigue=%s",
+        session_id, body.set_number, len(reps_data), avg_form, fatigue_result,
+    )
+
+    return PopulateSetResponse(
+        set_number=body.set_number,
+        reps=len(reps_data),
+        avg_form_score=avg_form,
+        fatigue_index=fatigue_result.get("fatigue_index"),
+        fatigue_risk=fatigue_result.get("fatigue_risk"),
+    )
 
 
 # ---------------------------------------------------------------------------

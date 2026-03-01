@@ -390,6 +390,21 @@ export async function addSet(
 }
 
 /**
+ * Populate a set in a session from video analysis results.
+ * Each uploaded video becomes one set with its detected reps.
+ */
+export async function populateSetFromAnalysis(
+  sessionId: string,
+  setNumber: number,
+  analysisResult: Record<string, unknown>,
+): Promise<{ set_number: number; reps: number; avg_form_score: number | null; fatigue_index: number | null; fatigue_risk: string | null }> {
+  return apiFetch(`/sessions/${sessionId}/populate-set-from-analysis`, {
+    method: "POST",
+    body: JSON.stringify({ set_number: setNumber, analysis_result: analysisResult }),
+  });
+}
+
+/**
  * Delete a session and all associated data.
  */
 export async function deleteSession(sessionId: string): Promise<void> {

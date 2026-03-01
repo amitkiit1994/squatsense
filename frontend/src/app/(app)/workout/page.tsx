@@ -28,7 +28,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useCamera } from "@/hooks/useCamera";
 import { useWebSocket } from "@/hooks/useWebSocket";
-import { apiFetch } from "@/lib/api";
+import {
+  apiFetch,
+  uploadVideo,
+  getAnalysisJob,
+  populateSetFromAnalysis,
+} from "@/lib/api";
+import type { AnalysisJobResponse } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
 // MediaPipe Pose Connections (key joints)
@@ -235,7 +241,6 @@ function WorkoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultExercise = searchParams.get("exercise") ?? "squat";
-  const isDemoMode = searchParams.get("demo") === "true";
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Pre-workout setup state
@@ -244,6 +249,22 @@ function WorkoutContent() {
   const [weightInput, setWeightInput] = useState("");
   const [isBodyweight, setIsBodyweight] = useState(false);
   const [sessionWeight, setSessionWeight] = useState<number | null>(null);
+
+  // Upload flow state
+  const [uploadMode, setUploadMode] = useState(false);
+  const [uploadSetNumber, setUploadSetNumber] = useState(1);
+  const [uploadStatus, setUploadStatus] = useState<
+    "idle" | "uploading" | "analyzing" | "saving" | "done" | "error"
+  >("idle");
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSetResults, setUploadSetResults] = useState<
+    Array<{
+      set_number: number;
+      reps: number;
+      avg_form_score: number | null;
+      fatigue_risk: string | null;
+    }>
+  >([]);
 
   // Use selected exercise once workout starts (locked after start)
   const exerciseType = showSetup ? selectedExercise : selectedExercise;
@@ -299,7 +320,6 @@ function WorkoutContent() {
     stopCamera,
     flipCamera,
     captureFrame,
-    loadVideoFile,
   } = useCamera();
 
   const {
@@ -372,17 +392,17 @@ function WorkoutContent() {
   }, [wsStatus]);
 
   // -------------------------------------------------------------------------
-  // Initialize camera and workout (skip in demo mode — user picks a file)
+  // Initialize camera and workout (skip in upload mode)
   // Wait until pre-workout setup is done before starting camera.
   // -------------------------------------------------------------------------
   useEffect(() => {
-    if (isDemoMode || showSetup) return;
+    if (uploadMode || showSetup) return;
     startCamera();
     return () => {
       stopCamera();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDemoMode, showSetup]);
+  }, [uploadMode, showSetup]);
 
   // -------------------------------------------------------------------------
   // Create session and connect WebSocket after camera is active
@@ -682,6 +702,110 @@ function WorkoutContent() {
     setShowSetup(false);
   }
 
+  function handleStartUpload() {
+    const weight = isBodyweight ? null : parseFloat(weightInput);
+    if (!isBodyweight && weightInput && (isNaN(weight!) || weight! < 0)) return;
+    setSessionWeight(!isBodyweight && weight && weight > 0 ? weight : null);
+    setUploadMode(true);
+    setShowSetup(false);
+  }
+
+  async function handleUploadSet(file: File) {
+    try {
+      // Step 1: Upload video
+      setUploadStatus("uploading");
+      const { job_id } = await uploadVideo(file, selectedExercise);
+
+      // Step 2: Poll for analysis completion
+      setUploadStatus("analyzing");
+      const result = await pollUntilDone(job_id);
+
+      if (result.status === "failed") {
+        throw new Error("error" in result ? result.error : "Analysis failed");
+      }
+      if (result.status !== "completed" || !("result" in result)) {
+        throw new Error("Analysis did not complete");
+      }
+      if (!result.result.reps || result.result.reps.length === 0) {
+        throw new Error("No reps detected in video. Try a clearer angle or longer clip.");
+      }
+
+      // Step 3: Create session on first set
+      setUploadStatus("saving");
+      let sid = sessionId;
+      if (!sid) {
+        const session = await apiFetch<{ id: string }>("/sessions/", {
+          method: "POST",
+          body: JSON.stringify({
+            exercise_type: selectedExercise,
+            source: "upload",
+            load_used: sessionWeight,
+          }),
+        });
+        sid = session.id;
+        setSessionId(sid);
+      }
+
+      // Step 4: Populate set from analysis results
+      const setResult = await populateSetFromAnalysis(
+        sid,
+        uploadSetNumber,
+        result.result as Record<string, unknown>,
+      );
+
+      // Step 5: Show results
+      setUploadSetResults((prev) => [...prev, {
+        set_number: setResult.set_number,
+        reps: setResult.reps,
+        avg_form_score: setResult.avg_form_score,
+        fatigue_risk: setResult.fatigue_risk,
+      }]);
+      setUploadStatus("done");
+    } catch (err) {
+      console.error("Upload failed:", err);
+      setUploadStatus("error");
+      setUploadError(
+        err instanceof Error ? err.message : "An unexpected error occurred",
+      );
+    }
+  }
+
+  async function pollUntilDone(jobId: string): Promise<AnalysisJobResponse> {
+    const maxAttempts = 120; // 2 min at 1s intervals
+    for (let i = 0; i < maxAttempts; i++) {
+      const job = await getAnalysisJob(jobId);
+      if (job.status !== "pending") return job;
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    throw new Error("Analysis timed out. Try a shorter video.");
+  }
+
+  function handleAddAnotherSet() {
+    setUploadSetNumber((n) => n + 1);
+    setUploadStatus("idle");
+    setUploadError(null);
+  }
+
+  async function handleFinishUploadWorkout() {
+    if (!sessionId) {
+      router.push("/dashboard");
+      return;
+    }
+    try {
+      const result = await apiFetch<{ id?: string; discarded?: boolean }>(
+        `/sessions/${sessionId}/end`,
+        { method: "POST" },
+      );
+      if (result.discarded) {
+        router.push("/dashboard");
+      } else {
+        router.push(`/session/${result.id ?? sessionId}`);
+      }
+    } catch {
+      router.push(`/session/${sessionId}`);
+    }
+  }
+
   async function handleEndSet() {
     const currentWeight = nextSetWeight ? parseFloat(nextSetWeight) : sessionWeight;
     const perSetReps = currentSetReps;
@@ -931,14 +1055,34 @@ function WorkoutContent() {
             );
           })()}
 
-          <Button
-            size="lg"
-            className="w-full"
-            onClick={handleStartWorkout}
-            disabled={!isBodyweight && weightInput !== "" && (isNaN(parseFloat(weightInput)) || parseFloat(weightInput) < 0)}
-          >
-            Start Workout
-          </Button>
+          <div className="space-y-3">
+            <Button
+              size="lg"
+              className="w-full"
+              onClick={handleStartWorkout}
+              disabled={!isBodyweight && weightInput !== "" && (isNaN(parseFloat(weightInput)) || parseFloat(weightInput) < 0)}
+            >
+              <Camera className="mr-2 h-4 w-4" />
+              Start Live Workout
+            </Button>
+
+            <div className="relative flex items-center gap-2">
+              <div className="h-px flex-1 bg-zinc-700" />
+              <span className="text-xs text-zinc-500 uppercase">or</span>
+              <div className="h-px flex-1 bg-zinc-700" />
+            </div>
+
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full border-violet-500/50 text-violet-300 hover:bg-violet-500/10"
+              onClick={handleStartUpload}
+              disabled={!isBodyweight && weightInput !== "" && (isNaN(parseFloat(weightInput)) || parseFloat(weightInput) < 0)}
+            >
+              <FileVideo className="mr-2 h-4 w-4" />
+              Upload Video
+            </Button>
+          </div>
 
           <Button
             variant="ghost"
@@ -947,6 +1091,232 @@ function WorkoutContent() {
           >
             Cancel
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Upload flow screen
+  // ---------------------------------------------------------------------------
+  if (uploadMode) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white px-6">
+        <div className="w-full max-w-sm space-y-6">
+          {/* Idle: pick a file */}
+          {uploadStatus === "idle" && (
+            <div className="flex flex-col items-center gap-4 text-center">
+              <FileVideo className="h-12 w-12 text-violet-400" />
+              <h2 className="text-xl font-bold">
+                Upload Set {uploadSetNumber} Video
+              </h2>
+              <p className="text-sm text-zinc-400 max-w-xs">
+                Select a video of your{" "}
+                {selectedExercise.replace(/_/g, " ")} set to analyze.
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleUploadSet(file);
+                  // Reset so same file can be re-selected
+                  e.target.value = "";
+                }}
+              />
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <FileVideo className="mr-2 h-4 w-4" />
+                Choose Video File
+              </Button>
+              <p className="text-xs text-zinc-500">
+                Supported: mp4, mov, avi, webm (max 100 MB)
+              </p>
+
+              {/* Previously completed sets */}
+              {uploadSetResults.length > 0 && (
+                <div className="w-full space-y-2 mt-2">
+                  <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide">
+                    Completed Sets
+                  </p>
+                  {uploadSetResults.map((s) => (
+                    <div
+                      key={s.set_number}
+                      className="flex items-center justify-between rounded-lg bg-zinc-900 border border-zinc-700 px-3 py-2"
+                    >
+                      <span className="text-sm font-medium">
+                        Set {s.set_number}
+                      </span>
+                      <div className="flex items-center gap-3 text-xs text-zinc-400">
+                        <span>{s.reps} reps</span>
+                        {s.avg_form_score != null && (
+                          <span className="text-violet-400">
+                            {s.avg_form_score.toFixed(1)} form
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Finish if at least one set done */}
+              {uploadSetResults.length > 0 && (
+                <Button
+                  size="lg"
+                  className="w-full bg-green-600 hover:bg-green-700"
+                  onClick={handleFinishUploadWorkout}
+                >
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Finish Workout ({uploadSetResults.reduce((a, s) => a + s.reps, 0)} total reps)
+                </Button>
+              )}
+
+              <Button
+                variant="ghost"
+                className="text-zinc-500 hover:text-zinc-300"
+                onClick={() => {
+                  setUploadMode(false);
+                  setShowSetup(true);
+                  setUploadStatus("idle");
+                  setUploadSetResults([]);
+                  setUploadSetNumber(1);
+                  setSessionId(null);
+                }}
+              >
+                Back to Setup
+              </Button>
+            </div>
+          )}
+
+          {/* Uploading / Analyzing / Saving */}
+          {(uploadStatus === "uploading" ||
+            uploadStatus === "analyzing" ||
+            uploadStatus === "saving") && (
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-violet-400 border-t-transparent" />
+              <h2 className="text-xl font-bold">
+                {uploadStatus === "uploading" && "Uploading Video..."}
+                {uploadStatus === "analyzing" && "Analyzing Your Form..."}
+                {uploadStatus === "saving" && "Saving Results..."}
+              </h2>
+              <p className="text-sm text-zinc-400">
+                {uploadStatus === "uploading" &&
+                  "Sending your video to our servers."}
+                {uploadStatus === "analyzing" &&
+                  "Running AI pose detection and scoring. This may take a moment."}
+                {uploadStatus === "saving" &&
+                  "Creating your session with detailed rep data."}
+              </p>
+            </div>
+          )}
+
+          {/* Done: show set result */}
+          {uploadStatus === "done" && uploadSetResults.length > 0 && (() => {
+            const latest = uploadSetResults[uploadSetResults.length - 1];
+            return (
+              <div className="flex flex-col items-center gap-4 text-center">
+                <CheckCircle2 className="h-12 w-12 text-green-400" />
+                <h2 className="text-xl font-bold">
+                  Set {latest.set_number} Analyzed
+                </h2>
+                <Card className="w-full bg-zinc-900 border-zinc-700">
+                  <CardContent className="pt-4">
+                    <div className="grid grid-cols-2 gap-4 text-center">
+                      <div>
+                        <p className="text-2xl font-bold text-white">
+                          {latest.reps}
+                        </p>
+                        <p className="text-xs text-zinc-400">Reps</p>
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-violet-400">
+                          {latest.avg_form_score != null
+                            ? latest.avg_form_score.toFixed(1)
+                            : "—"}
+                        </p>
+                        <p className="text-xs text-zinc-400">Form Score</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* All sets so far */}
+                {uploadSetResults.length > 1 && (
+                  <div className="w-full space-y-1">
+                    {uploadSetResults.slice(0, -1).map((s) => (
+                      <div
+                        key={s.set_number}
+                        className="flex items-center justify-between rounded bg-zinc-900/50 px-3 py-1.5 text-xs text-zinc-400"
+                      >
+                        <span>Set {s.set_number}</span>
+                        <span>
+                          {s.reps} reps
+                          {s.avg_form_score != null &&
+                            ` · ${s.avg_form_score.toFixed(1)} form`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex w-full gap-3">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="flex-1 border-zinc-600"
+                    onClick={handleAddAnotherSet}
+                  >
+                    Add Set {uploadSetNumber + 1}
+                  </Button>
+                  <Button
+                    size="lg"
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    onClick={handleFinishUploadWorkout}
+                  >
+                    Finish
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Error */}
+          {uploadStatus === "error" && (
+            <div className="flex flex-col items-center gap-4 text-center">
+              <AlertTriangle className="h-12 w-12 text-red-400" />
+              <h2 className="text-xl font-bold text-red-400">
+                Analysis Failed
+              </h2>
+              <p className="text-sm text-zinc-400">{uploadError}</p>
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={() => {
+                  setUploadStatus("idle");
+                  setUploadError(null);
+                }}
+              >
+                Try Again
+              </Button>
+              <Button
+                variant="ghost"
+                className="text-zinc-500 hover:text-zinc-300"
+                onClick={() => {
+                  setUploadMode(false);
+                  setUploadStatus("idle");
+                  setShowSetup(true);
+                }}
+              >
+                Back to Setup
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -974,7 +1344,7 @@ function WorkoutContent() {
         />
 
         {/* Camera flip button (mobile) */}
-        {cameraIsActive && !isDemoMode && (
+        {cameraIsActive && (
           <button
             type="button"
             onClick={flipCamera}
@@ -1011,40 +1381,6 @@ function WorkoutContent() {
                   </div>
                 );
               })()}
-            </div>
-          </div>
-        )}
-
-        {/* Demo mode: video file picker */}
-        {isDemoMode && !cameraIsActive && !cameraError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-20">
-            <div className="flex flex-col items-center gap-4 text-center px-6">
-              <FileVideo className="h-12 w-12 text-violet-400" />
-              <p className="text-lg font-semibold">Demo Mode</p>
-              <p className="text-sm text-white/70 max-w-xs">
-                Select a squat video to simulate a live workout without using the camera.
-              </p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="video/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) loadVideoFile(file);
-                }}
-              />
-              <Button
-                variant="outline"
-                className="text-white border-violet-500/50 hover:bg-violet-500/20"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <FileVideo className="mr-2 h-4 w-4" />
-                Choose Video File
-              </Button>
-              <p className="text-xs text-white/40">
-                Tip: Use any squat video (mp4, mov, webm)
-              </p>
             </div>
           </div>
         )}

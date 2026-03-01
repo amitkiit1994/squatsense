@@ -181,6 +181,11 @@ export function useCamera(): UseCameraReturn {
   /**
    * Draw the current video frame onto the canvas and convert to
    * a JPEG Blob for transmission to the backend.
+   *
+   * If the source video exceeds 640px wide, the frame is scaled down
+   * to keep WebSocket bandwidth manageable (especially on mobile where
+   * cameras/videos can be 1080p or 4K). JPEG quality is also lowered
+   * for large sources.
    */
   const captureFrame = useCallback(async (): Promise<Blob | null> => {
     const video = videoRef.current;
@@ -190,20 +195,30 @@ export function useCamera(): UseCameraReturn {
       return null;
     }
 
-    // Match canvas dimensions to the actual video resolution
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    const vw = video.videoWidth || 640;
+    const vh = video.videoHeight || 480;
+
+    // Scale down if the source is larger than 640px wide.
+    // This keeps each JPEG frame small (~20-40 KB) and prevents
+    // WebSocket buffer overflow on slower connections.
+    const MAX_WIDTH = 640;
+    const scale = vw > MAX_WIDTH ? MAX_WIDTH / vw : 1;
+    canvas.width = Math.round(vw * scale);
+    canvas.height = Math.round(vh * scale);
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+    // Use lower JPEG quality when the source is high-res
+    const quality = scale < 1 ? 0.6 : 0.8;
+
     return new Promise<Blob | null>((resolve) => {
       canvas.toBlob(
         (blob) => resolve(blob),
         "image/jpeg",
-        0.8, // quality
+        quality,
       );
     });
   }, [isActive]);

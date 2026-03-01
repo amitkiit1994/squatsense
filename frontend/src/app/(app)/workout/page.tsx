@@ -1478,7 +1478,7 @@ function WorkoutContent() {
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <Button
                   variant="outline"
                   className="flex-1 border-zinc-600 text-white hover:bg-zinc-800"
@@ -1487,7 +1487,7 @@ function WorkoutContent() {
                   <StopCircle className="mr-2 h-4 w-4" />
                   End Workout
                 </Button>
-                <Button className="flex-1" onClick={handleSkipRest}>
+                <Button className="flex-1 whitespace-nowrap" onClick={handleSkipRest}>
                   {uploadMode ? (
                     <FileVideo className="mr-2 h-4 w-4" />
                   ) : (

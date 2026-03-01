@@ -150,11 +150,13 @@ class IncrementalRepDetector:
         min_frames_peak_to_trough: int = 5,
         min_frames_trough_to_peak: int = 5,
         min_frames_between_reps: int = 6,
+        min_knee_flexion_deg: float = 45.0,
     ):
         self.window_size = window_size
         self.min_pt = min_frames_peak_to_trough
         self.min_tp = min_frames_trough_to_peak
         self.min_frames_between_reps = min_frames_between_reps
+        self.min_knee_flexion_deg = min_knee_flexion_deg
         self.signal_buffer: list[float] = []
         self.keypoint_buffer: list[Optional[list[tuple[float, float]]]] = []
         self.keypoint_3d_buffer: list[Optional[list[tuple[float, float, float]]]] = []
@@ -431,7 +433,19 @@ class IncrementalRepDetector:
                             (end_f - start_f) / fps,
                         )
 
-                    if gap_ok and self._current_bottom_metrics and min_rom_ok and min_dur_ok:
+                    # Minimum knee flexion check: reject shallow movements
+                    # like unracking the bar (typically ~30° vs 80°+ for real reps)
+                    min_flex_ok = True
+                    if self._current_bottom_metrics and self.min_knee_flexion_deg > 0:
+                        bottom_flex = self._current_bottom_metrics.get("knee_flexion_deg")
+                        if bottom_flex is not None and bottom_flex < self.min_knee_flexion_deg:
+                            min_flex_ok = False
+                            logger.info(
+                                "Rep rejected: knee flexion %.1f° < %.1f° minimum (likely unrack/setup)",
+                                bottom_flex, self.min_knee_flexion_deg,
+                            )
+
+                    if gap_ok and self._current_bottom_metrics and min_rom_ok and min_dur_ok and min_flex_ok:
                         self._last_confirmed_end_frame = end_f
                         duration_sec = (end_f - start_f) / fps if fps > 0 else None
                         speed = (1.0 / duration_sec) if duration_sec and duration_sec > 0 else None
@@ -519,6 +533,16 @@ class IncrementalRepDetector:
         if duration_sec is not None and duration_sec < 0.3:
             logger.info("flush_pending_rep: rejected, duration %.2fs < 0.3s", duration_sec)
             return False
+
+        # Reject shallow movements (e.g. unracking)
+        if self.min_knee_flexion_deg > 0:
+            bottom_flex = self._current_bottom_metrics.get("knee_flexion_deg")
+            if bottom_flex is not None and bottom_flex < self.min_knee_flexion_deg:
+                logger.info(
+                    "flush_pending_rep: rejected, knee flexion %.1f° < %.1f° minimum",
+                    bottom_flex, self.min_knee_flexion_deg,
+                )
+                return False
 
         speed = (1.0 / duration_sec) if duration_sec and duration_sec > 0 else None
         pose_conf = self._current_bottom_metrics.get("pose_confidence")

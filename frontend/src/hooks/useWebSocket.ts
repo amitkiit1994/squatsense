@@ -3,7 +3,7 @@
 /**
  * WebSocket hook for live workout analysis.
  *
- * Wraps `SquatSenseWS` from `lib/ws.ts` with React state management.
+ * Wraps `FreeFormWS` from `lib/ws.ts` with React state management.
  * Exposes real-time metrics, rep count, connection status, and
  * convenience methods for connecting, disconnecting, and sending
  * frames.
@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { SquatSenseWS } from "@/lib/ws";
+import { FreeFormWS } from "@/lib/ws";
 import type {
   WebSocketFrameResult,
   WebSocketMessage,
@@ -69,7 +69,7 @@ export interface UseWebSocketReturn {
 }
 
 export function useWebSocket(): UseWebSocketReturn {
-  const wsRef = useRef<SquatSenseWS | null>(null);
+  const wsRef = useRef<FreeFormWS | null>(null);
   const summaryResolveRef = useRef<((s: WebSocketSessionSummary) => void) | null>(null);
 
   const [isConnected, setIsConnected] = useState(false);
@@ -142,7 +142,7 @@ export function useWebSocket(): UseWebSocketReturn {
       setLandmarks([]);
       setSessionSummary(null);
 
-      const ws = new SquatSenseWS();
+      const ws = new FreeFormWS();
 
       ws.onOpen = () => {
         setIsConnected(true);

@@ -29,27 +29,27 @@ router = APIRouter(prefix="/waitlist", tags=["waitlist"])
 def _build_welcome_email(to_email: str) -> MIMEMultipart:
     """Build the HTML thank-you email."""
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = "Welcome to the SquatSense.ai Waitlist!"
+    msg["Subject"] = "Welcome to the FreeForm Fitness Waitlist!"
     msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
     msg["To"] = to_email
 
     text = (
-        "Thanks for joining the SquatSense.ai waitlist!\n\n"
+        "Thanks for joining the FreeForm Fitness waitlist!\n\n"
         "You're now in line for early access to AI-powered movement analysis "
         "that tracks joint angles, form scores, and fatigue — all from your "
         "phone camera.\n\n"
         "We'll email you as soon as we're ready to let you in.\n\n"
-        "— The SquatSense.ai Team"
+        "— The FreeForm Fitness Team"
     )
 
     html = f"""\
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; color: #e4e4e7; background-color: #18181b; border-radius: 16px;">
       <div style="text-align: center; margin-bottom: 24px;">
-        <h1 style="font-size: 24px; font-weight: 700; margin: 0; color: #a78bfa;">SquatSense.ai</h1>
+        <h1 style="font-size: 24px; font-weight: 700; margin: 0; color: #fb923c;">FreeForm Fitness</h1>
       </div>
       <h2 style="font-size: 20px; font-weight: 600; color: #fafafa; margin: 0 0 16px;">You're on the list!</h2>
       <p style="font-size: 15px; line-height: 1.6; color: #a1a1aa; margin: 0 0 16px;">
-        Thanks for joining the SquatSense.ai waitlist. You're now in line for early access to
+        Thanks for joining the FreeForm Fitness waitlist. You're now in line for early access to
         AI-powered movement analysis that tracks joint angles, form scores, and fatigue &mdash;
         all from your phone camera.
       </p>
@@ -58,7 +58,7 @@ def _build_welcome_email(to_email: str) -> MIMEMultipart:
       </p>
       <div style="border-top: 1px solid #27272a; padding-top: 16px; text-align: center;">
         <p style="font-size: 12px; color: #52525b; margin: 0;">
-          &copy; 2026 SquatSense.ai. All rights reserved.
+          &copy; 2026 FreeForm Fitness. All rights reserved.
         </p>
       </div>
     </div>

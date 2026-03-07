@@ -1,7 +1,7 @@
 {
-  "name": "SquatSense",
-  "short_name": "SquatSense",
-  "description": "AI-powered movement intelligence platform",
+  "name": "FreeForm Fitness",
+  "short_name": "FreeForm",
+  "description": "Measure the Movement. Master the Form.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#18181b",

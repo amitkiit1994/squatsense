@@ -164,7 +164,7 @@ export default function DashboardPage() {
       return {
         icon: Dumbbell,
         text: "Start your first workout to get personalized insights based on your form data.",
-        color: "text-violet-400",
+        color: "text-orange-400",
       };
     }
 
@@ -213,7 +213,7 @@ export default function DashboardPage() {
     return {
       icon: Lightbulb,
       text: `Your last ${last.exercise_type.replace(/_/g, " ")} scored ${Math.round(Number(last.avg_form_score) || 0)}/100. Maintain this weight and focus on hitting all cues consistently.`,
-      color: "text-violet-400",
+      color: "text-orange-400",
     };
   }
 
@@ -246,7 +246,7 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
           Welcome back,{" "}
-          <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-blue-400 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-cyan-400 bg-clip-text text-transparent">
             {userName}
           </span>
         </h1>
@@ -272,7 +272,7 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Sessions
             </CardTitle>
-            <Activity className="h-4 w-4 text-violet-400" />
+            <Activity className="h-4 w-4 text-orange-400" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
@@ -291,7 +291,7 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Avg Form Score
             </CardTitle>
-            <TrendingUp className="h-4 w-4 text-violet-400" />
+            <TrendingUp className="h-4 w-4 text-orange-400" />
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
@@ -323,7 +323,7 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Current Streak
             </CardTitle>
-            <Flame className="h-4 w-4 text-violet-400" />
+            <Flame className="h-4 w-4 text-orange-400" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
@@ -338,10 +338,10 @@ export default function DashboardPage() {
 
       {/* Today's Workout (from weekly plan) */}
       {todaysWorkout && !todaysWorkout.is_rest_day && (
-        <Card className="border-violet-500/20">
+        <Card className="border-orange-500/20">
           <CardHeader className="flex flex-row items-center gap-3 pb-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-500/10">
-              <CalendarDays className="h-5 w-5 text-violet-400" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500/10">
+              <CalendarDays className="h-5 w-5 text-orange-400" />
             </div>
             <div>
               <CardTitle className="text-lg">Today&apos;s Workout</CardTitle>
@@ -426,9 +426,9 @@ export default function DashboardPage() {
       </Card>
 
       {/* Personalized Insight (replaces generic tip) */}
-      <Card className="border-violet-500/20">
+      <Card className="border-orange-500/20">
         <CardHeader className="flex flex-row items-center gap-3 pb-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-500/10">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500/10">
             <InsightIcon className={`h-5 w-5 ${insight.color}`} />
           </div>
           <CardTitle className="text-lg">Your Insight</CardTitle>

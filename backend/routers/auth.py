@@ -251,29 +251,29 @@ def _create_password_reset_token(user_id: UUID, password_hash: str) -> str:
 def _build_reset_email(to_email: str, reset_url: str) -> MIMEMultipart:
     """Build the password reset email."""
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = "Reset your SquatSense password"
+    msg["Subject"] = "Reset your FreeForm Fitness password"
     msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
     msg["To"] = to_email
 
     text = (
-        "You requested a password reset for your SquatSense account.\n\n"
+        "You requested a password reset for your FreeForm Fitness account.\n\n"
         f"Click here to reset your password:\n{reset_url}\n\n"
         "This link expires in 15 minutes. If you didn't request this, "
         "you can safely ignore this email.\n\n"
-        "— The SquatSense Team"
+        "— The FreeForm Fitness Team"
     )
 
     html = f"""\
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; color: #e4e4e7; background-color: #18181b; border-radius: 16px;">
       <div style="text-align: center; margin-bottom: 24px;">
-        <h1 style="font-size: 24px; font-weight: 700; margin: 0; color: #a78bfa;">SquatSense</h1>
+        <h1 style="font-size: 24px; font-weight: 700; margin: 0; color: #fb923c;">FreeForm Fitness</h1>
       </div>
       <h2 style="font-size: 20px; font-weight: 600; color: #fafafa; margin: 0 0 16px;">Reset your password</h2>
       <p style="font-size: 15px; line-height: 1.6; color: #a1a1aa; margin: 0 0 16px;">
         You requested a password reset. Click the button below to choose a new password.
       </p>
       <div style="text-align: center; margin: 24px 0;">
-        <a href="{reset_url}" style="display: inline-block; padding: 12px 32px; background-color: #7c3aed; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
+        <a href="{reset_url}" style="display: inline-block; padding: 12px 32px; background-color: #ea580c; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
           Reset Password
         </a>
       </div>
@@ -282,7 +282,7 @@ def _build_reset_email(to_email: str, reset_url: str) -> MIMEMultipart:
       </p>
       <div style="border-top: 1px solid #27272a; padding-top: 16px; text-align: center;">
         <p style="font-size: 12px; color: #52525b; margin: 0;">
-          &copy; 2026 SquatSense. All rights reserved.
+          &copy; 2026 FreeForm Fitness. All rights reserved.
         </p>
       </div>
     </div>

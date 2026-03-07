@@ -1,5 +1,5 @@
 /**
- * TypeScript interfaces matching the SquatSense backend Pydantic schemas.
+ * TypeScript interfaces matching the FreeForm Fitness backend Pydantic schemas.
  *
  * These types mirror the exact shapes returned by the FastAPI backend at
  * http://localhost:8000/api/v1/ and accepted as request payloads.

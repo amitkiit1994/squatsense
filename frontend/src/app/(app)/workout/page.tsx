@@ -156,12 +156,12 @@ function CameraGuideDiagram({ position }: { position: CameraGuide["position"] })
       <svg viewBox="0 0 96 80" className="w-full h-full">
         <line x1="0" y1="72" x2="96" y2="72" stroke="#52525b" strokeWidth="1" />
         {/* Person facing camera */}
-        <circle cx="48" cy="18" r="5" fill="#a78bfa" />
-        <line x1="48" y1="23" x2="48" y2="45" stroke="#a78bfa" strokeWidth="2" />
-        <line x1="48" y1="30" x2="36" y2="38" stroke="#a78bfa" strokeWidth="2" />
-        <line x1="48" y1="30" x2="60" y2="38" stroke="#a78bfa" strokeWidth="2" />
-        <line x1="48" y1="45" x2="40" y2="72" stroke="#a78bfa" strokeWidth="2" />
-        <line x1="48" y1="45" x2="56" y2="72" stroke="#a78bfa" strokeWidth="2" />
+        <circle cx="48" cy="18" r="5" fill="#06b6d4" />
+        <line x1="48" y1="23" x2="48" y2="45" stroke="#06b6d4" strokeWidth="2" />
+        <line x1="48" y1="30" x2="36" y2="38" stroke="#06b6d4" strokeWidth="2" />
+        <line x1="48" y1="30" x2="60" y2="38" stroke="#06b6d4" strokeWidth="2" />
+        <line x1="48" y1="45" x2="40" y2="72" stroke="#06b6d4" strokeWidth="2" />
+        <line x1="48" y1="45" x2="56" y2="72" stroke="#06b6d4" strokeWidth="2" />
         {/* Phone below (front) */}
         <rect x="44" y="76" width="8" height="3" rx="1" fill="#22c55e" stroke="#4ade80" strokeWidth="0.5" />
         <line x1="48" y1="76" x2="48" y2="62" stroke="#22c55e" strokeWidth="1" strokeDasharray="2,2" />
@@ -174,12 +174,12 @@ function CameraGuideDiagram({ position }: { position: CameraGuide["position"] })
       <svg viewBox="0 0 96 80" className="w-full h-full">
         <line x1="0" y1="72" x2="96" y2="72" stroke="#52525b" strokeWidth="1" />
         {/* Person */}
-        <circle cx="52" cy="18" r="5" fill="#a78bfa" />
-        <line x1="52" y1="23" x2="52" y2="45" stroke="#a78bfa" strokeWidth="2" />
-        <line x1="52" y1="30" x2="42" y2="38" stroke="#a78bfa" strokeWidth="2" />
-        <line x1="52" y1="30" x2="62" y2="38" stroke="#a78bfa" strokeWidth="2" />
-        <line x1="52" y1="45" x2="44" y2="72" stroke="#a78bfa" strokeWidth="2" />
-        <line x1="52" y1="45" x2="60" y2="72" stroke="#a78bfa" strokeWidth="2" />
+        <circle cx="52" cy="18" r="5" fill="#06b6d4" />
+        <line x1="52" y1="23" x2="52" y2="45" stroke="#06b6d4" strokeWidth="2" />
+        <line x1="52" y1="30" x2="42" y2="38" stroke="#06b6d4" strokeWidth="2" />
+        <line x1="52" y1="30" x2="62" y2="38" stroke="#06b6d4" strokeWidth="2" />
+        <line x1="52" y1="45" x2="44" y2="72" stroke="#06b6d4" strokeWidth="2" />
+        <line x1="52" y1="45" x2="60" y2="72" stroke="#06b6d4" strokeWidth="2" />
         {/* Phone at 45° */}
         <rect x="8" y="58" width="8" height="14" rx="1" fill="#22c55e" stroke="#4ade80" strokeWidth="0.5" transform="rotate(-20 12 65)" />
         <line x1="18" y1="60" x2="38" y2="48" stroke="#22c55e" strokeWidth="1" strokeDasharray="2,2" />
@@ -192,12 +192,12 @@ function CameraGuideDiagram({ position }: { position: CameraGuide["position"] })
     <svg viewBox="0 0 96 80" className="w-full h-full">
       <line x1="0" y1="72" x2="96" y2="72" stroke="#52525b" strokeWidth="1" />
       {/* Person (center) */}
-      <circle cx="48" cy="18" r="5" fill="#a78bfa" />
-      <line x1="48" y1="23" x2="48" y2="45" stroke="#a78bfa" strokeWidth="2" />
-      <line x1="48" y1="30" x2="38" y2="38" stroke="#a78bfa" strokeWidth="2" />
-      <line x1="48" y1="30" x2="58" y2="38" stroke="#a78bfa" strokeWidth="2" />
-      <line x1="48" y1="45" x2="40" y2="72" stroke="#a78bfa" strokeWidth="2" />
-      <line x1="48" y1="45" x2="56" y2="72" stroke="#a78bfa" strokeWidth="2" />
+      <circle cx="48" cy="18" r="5" fill="#06b6d4" />
+      <line x1="48" y1="23" x2="48" y2="45" stroke="#06b6d4" strokeWidth="2" />
+      <line x1="48" y1="30" x2="38" y2="38" stroke="#06b6d4" strokeWidth="2" />
+      <line x1="48" y1="30" x2="58" y2="38" stroke="#06b6d4" strokeWidth="2" />
+      <line x1="48" y1="45" x2="40" y2="72" stroke="#06b6d4" strokeWidth="2" />
+      <line x1="48" y1="45" x2="56" y2="72" stroke="#06b6d4" strokeWidth="2" />
       {/* Phone (to the side) */}
       <rect x="8" y="30" width="8" height="14" rx="1" fill="#22c55e" stroke="#4ade80" strokeWidth="0.5" />
       <line x1="16" y1="37" x2="36" y2="37" stroke="#22c55e" strokeWidth="1" strokeDasharray="2,2" />
@@ -857,7 +857,7 @@ function WorkoutContent() {
       <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white px-6">
         <div className="w-full max-w-sm space-y-6">
           <div className="text-center space-y-2">
-            <Dumbbell className="h-10 w-10 mx-auto text-violet-400" />
+            <Dumbbell className="h-10 w-10 mx-auto text-orange-400" />
             <h1 className="text-xl font-bold">Set Up Your Workout</h1>
             <p className="text-sm text-zinc-400">
               Choose your exercise and weight. You can adjust per set during rest.
@@ -875,7 +875,7 @@ function WorkoutContent() {
                   <select
                     value={selectedExercise}
                     onChange={(e) => setSelectedExercise(e.target.value)}
-                    className="w-full appearance-none rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3 pr-10 text-white text-sm font-medium capitalize focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                    className="w-full appearance-none rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3 pr-10 text-white text-sm font-medium capitalize focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                   >
                     {EXERCISE_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -896,7 +896,7 @@ function WorkoutContent() {
                 }}
                 className={`w-full rounded-lg border px-4 py-3 text-left text-sm transition-colors ${
                   isBodyweight
-                    ? "border-violet-500 bg-violet-500/10 text-violet-300"
+                    ? "border-orange-500 bg-orange-500/10 text-orange-300"
                     : "border-zinc-700 bg-zinc-800 text-zinc-300 hover:border-zinc-600"
                 }`}
               >
@@ -932,7 +932,7 @@ function WorkoutContent() {
                         onClick={() => setWeightInput(String(w))}
                         className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                           weightInput === String(w)
-                            ? "bg-violet-500 text-white"
+                            ? "bg-orange-500 text-white"
                             : "bg-zinc-800 text-zinc-400 border border-zinc-700 hover:border-zinc-500"
                         }`}
                       >
@@ -955,7 +955,7 @@ function WorkoutContent() {
             return (
               <Card className="border-zinc-800 bg-zinc-900 text-white">
                 <CardContent className="pt-5 space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-violet-400">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-orange-400">
                     <Smartphone className="h-4 w-4" />
                     Camera Setup
                   </div>
@@ -1018,7 +1018,7 @@ function WorkoutContent() {
             <Button
               size="lg"
               variant="outline"
-              className="w-full border-violet-500/50 text-violet-300 hover:bg-violet-500/10"
+              className="w-full border-orange-500/50 text-orange-300 hover:bg-orange-500/10"
               onClick={() => fileInputRef.current?.click()}
               disabled={!isBodyweight && weightInput !== "" && (isNaN(parseFloat(weightInput)) || parseFloat(weightInput) < 0)}
             >
@@ -1196,7 +1196,7 @@ function WorkoutContent() {
                 : "-translate-y-2 opacity-0"
             }`}
           >
-            <div className="rounded-full bg-black/70 px-4 py-2 backdrop-blur-sm border border-violet-500/20">
+            <div className="rounded-full bg-black/70 px-4 py-2 backdrop-blur-sm border border-orange-500/20">
               <p className="text-center text-sm font-medium text-white">
                 {coachingCue}
               </p>
@@ -1466,7 +1466,7 @@ function WorkoutContent() {
                           <button
                             type="button"
                             onClick={() => setEditingWeight(true)}
-                            className="inline-flex items-center gap-1 text-lg font-bold hover:text-violet-400 transition-colors"
+                            className="inline-flex items-center gap-1 text-lg font-bold hover:text-orange-400 transition-colors"
                           >
                             {nextSetWeight || sessionWeight} kg
                             <Pencil className="h-3 w-3 text-zinc-500" />

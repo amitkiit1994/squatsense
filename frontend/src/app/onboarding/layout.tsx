@@ -45,7 +45,7 @@ export default function OnboardingLayout({
         {/* Progress bar */}
         <div className="h-1 w-full bg-zinc-800">
           <div
-            className="h-full bg-violet-600 transition-all duration-500 ease-out"
+            className="h-full bg-orange-600 transition-all duration-500 ease-out"
             style={{ width: `${(currentStep / STEPS.length) * 100}%` }}
           />
         </div>
@@ -63,9 +63,9 @@ export default function OnboardingLayout({
               <div
                 className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
                   isCompleted
-                    ? "bg-violet-600 text-white"
+                    ? "bg-orange-600 text-white"
                     : isCurrent
-                    ? "border-2 border-violet-500 bg-violet-950 text-violet-400"
+                    ? "border-2 border-orange-500 bg-orange-950 text-orange-400"
                     : "border border-zinc-700 bg-zinc-900 text-zinc-500"
                 }`}
               >
@@ -80,7 +80,7 @@ export default function OnboardingLayout({
               <span
                 className={`hidden text-xs sm:block ${
                   isCurrent
-                    ? "font-medium text-violet-400"
+                    ? "font-medium text-orange-400"
                     : isCompleted
                     ? "text-zinc-400"
                     : "text-zinc-500"

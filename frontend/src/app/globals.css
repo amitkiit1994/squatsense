@@ -4,7 +4,7 @@
   --background: #09090b;
   --foreground: #fafafa;
   /* HSL values for recharts / shadcn hsl(var(--x)) usage */
-  --primary: 263 83% 58%;
+  --primary: 25 95% 53%;
   --primary-foreground: 0 0% 100%;
 }
 
@@ -14,14 +14,14 @@
   --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 
-  /* ── Violet design system tokens ──────────────────────────────── */
-  --color-primary: #7c3aed;
+  /* ── Orange design system tokens ──────────────────────────────── */
+  --color-primary: #ea580c;
   --color-primary-foreground: #ffffff;
   --color-secondary: #27272a;
   --color-secondary-foreground: #fafafa;
   --color-muted: #27272a;
   --color-muted-foreground: #a1a1aa;
-  --color-accent: #2e1065;
+  --color-accent: #431407;
   --color-accent-foreground: #fafafa;
   --color-destructive: #dc2626;
   --color-destructive-foreground: #ffffff;
@@ -31,7 +31,7 @@
   --color-popover-foreground: #fafafa;
   --color-border: #27272a;
   --color-input: #3f3f46;
-  --color-ring: #8b5cf6;
+  --color-ring: #f97316;
 }
 
 body {
@@ -74,8 +74,8 @@ body {
 
 /* ── Glow pulse for CTA button ───────────────────────────────────── */
 @keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 60px rgba(139, 92, 246, 0.1); }
-  50%      { box-shadow: 0 0 30px rgba(139, 92, 246, 0.5), 0 0 80px rgba(139, 92, 246, 0.2); }
+  0%, 100% { box-shadow: 0 0 20px rgba(249, 115, 22, 0.3), 0 0 60px rgba(249, 115, 22, 0.1); }
+  50%      { box-shadow: 0 0 30px rgba(249, 115, 22, 0.5), 0 0 80px rgba(249, 115, 22, 0.2); }
 }
 
 .animate-glow-pulse {
@@ -85,8 +85,8 @@ body {
 /* ── Grid background pattern ─────────────────────────────────────── */
 .bg-grid {
   background-image:
-    linear-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(139, 92, 246, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px);
   background-size: 64px 64px;
 }
 
@@ -108,7 +108,7 @@ body {
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), transparent 50%, rgba(96, 165, 250, 0.2));
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.3), transparent 50%, rgba(96, 165, 250, 0.2));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
@@ -143,7 +143,7 @@ body {
 /* ── Recharts tooltip glass styling ────────────────────────────────── */
 .recharts-default-tooltip {
   background: rgba(24, 24, 27, 0.85) !important;
-  border: 1px solid rgba(139, 92, 246, 0.2) !important;
+  border: 1px solid rgba(249, 115, 22, 0.2) !important;
   border-radius: 0.5rem !important;
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;

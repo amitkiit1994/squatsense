@@ -1,5 +1,5 @@
 /**
- * SquatSense API client.
+ * FreeForm Fitness API client.
  *
  * Wraps the native `fetch` API with JWT bearer-token injection,
  * automatic token refresh on 401, and typed helper functions for

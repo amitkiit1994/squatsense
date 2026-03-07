@@ -250,25 +250,25 @@ export default function BaselinePage() {
           {/* Intro Phase */}
           {phase === "intro" && (
             <div className="space-y-6">
-              <div className="rounded-xl bg-violet-950/30 p-5">
-                <h3 className="text-sm font-semibold text-violet-100 mb-3">
+              <div className="rounded-xl bg-orange-950/30 p-5">
+                <h3 className="text-sm font-semibold text-orange-100 mb-3">
                   How it works
                 </h3>
-                <ol className="space-y-2 text-sm text-violet-200">
+                <ol className="space-y-2 text-sm text-orange-200">
                   <li className="flex gap-2">
-                    <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-violet-800 text-xs font-bold text-violet-200">
+                    <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-800 text-xs font-bold text-orange-200">
                       1
                     </span>
                     Position your camera so your full body is visible
                   </li>
                   <li className="flex gap-2">
-                    <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-violet-800 text-xs font-bold text-violet-200">
+                    <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-800 text-xs font-bold text-orange-200">
                       2
                     </span>
                     Perform 3-5 bodyweight squats at your normal pace
                   </li>
                   <li className="flex gap-2">
-                    <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-violet-800 text-xs font-bold text-violet-200">
+                    <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-800 text-xs font-bold text-orange-200">
                       3
                     </span>
                     We&apos;ll analyze your form and establish your baseline
@@ -364,7 +364,7 @@ export default function BaselinePage() {
           {/* Processing Phase */}
           {phase === "processing" && (
             <div className="flex flex-col items-center justify-center py-12">
-              <div className="mb-6 h-12 w-12 animate-spin rounded-full border-4 border-zinc-700 border-t-violet-500" />
+              <div className="mb-6 h-12 w-12 animate-spin rounded-full border-4 border-zinc-700 border-t-orange-500" />
               <h3 className="text-lg font-semibold text-white">
                 Analyzing your squat...
               </h3>
@@ -378,14 +378,14 @@ export default function BaselinePage() {
           {phase === "results" && metrics && (
             <div className="space-y-6">
               {/* Overall score */}
-              <div className="flex flex-col items-center rounded-xl bg-gradient-to-br from-violet-950/40 to-violet-900/20 p-6">
-                <span className="text-sm font-medium text-violet-400">
+              <div className="flex flex-col items-center rounded-xl bg-gradient-to-br from-orange-950/40 to-orange-900/20 p-6">
+                <span className="text-sm font-medium text-orange-400">
                   Overall Score
                 </span>
-                <span className="mt-1 text-5xl font-bold text-violet-300">
+                <span className="mt-1 text-5xl font-bold text-orange-300">
                   {metrics.overallScore}
                 </span>
-                <span className="mt-1 text-sm text-violet-400">
+                <span className="mt-1 text-sm text-orange-400">
                   out of 100
                 </span>
               </div>

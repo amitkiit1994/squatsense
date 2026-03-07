@@ -302,7 +302,7 @@ export default function CoachPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-blue-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-cyan-400 bg-clip-text text-transparent">
               AI Coach
             </span>
           </h1>
@@ -328,7 +328,7 @@ export default function CoachPage() {
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Brain className="h-5 w-5 text-violet-400" />
+                <Brain className="h-5 w-5 text-orange-400" />
                 Latest Feedback
               </CardTitle>
               <Badge variant="outline" className="text-xs">
@@ -342,7 +342,7 @@ export default function CoachPage() {
           </CardHeader>
           <CardContent className="space-y-5">
             {/* Overall Assessment */}
-            <div className="rounded-lg bg-violet-500/5 border border-violet-500/10 p-4">
+            <div className="rounded-lg bg-orange-500/5 border border-orange-500/10 p-4">
               <p className="text-sm leading-relaxed">
                 {feedback.overall_assessment}
               </p>
@@ -360,7 +360,7 @@ export default function CoachPage() {
             {feedback.cues.length > 0 && (
               <div>
                 <h3 className="mb-3 text-sm font-semibold flex items-center gap-2">
-                  <Lightbulb className="h-4 w-4 text-violet-400" />
+                  <Lightbulb className="h-4 w-4 text-orange-400" />
                   Coaching Cues
                 </h3>
                 <ul className="space-y-2">
@@ -482,8 +482,8 @@ export default function CoachPage() {
                   className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/10">
-                      <Dumbbell className="h-4 w-4 text-violet-400" />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500/10">
+                      <Dumbbell className="h-4 w-4 text-orange-400" />
                     </div>
                     <div>
                       <p className="text-sm font-medium">{item.drill_name}</p>

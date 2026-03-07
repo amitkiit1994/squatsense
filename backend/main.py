@@ -62,16 +62,16 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Run DB init on startup."""
-    logger.info("Starting SquatSense backend")
+    logger.info("Starting FreeForm Fitness backend")
     await init_db()
     logger.info("Database initialized")
     yield
-    logger.info("Shutting down SquatSense backend")
+    logger.info("Shutting down FreeForm Fitness backend")
 
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="SquatSense API",
+        title="FreeForm Fitness API",
         version="1.0.0",
         description="Movement Intelligence Platform API",
         lifespan=lifespan,

@@ -1,5 +1,5 @@
 /**
- * WebSocket client for SquatSense live analysis.
+ * WebSocket client for FreeForm Fitness live analysis.
  *
  * Connects to the backend's `/api/v1/ws/live/` WebSocket endpoint,
  * sends raw JPEG frames (as binary), and receives real-time analysis
@@ -27,14 +27,14 @@ const BASE_BACKOFF_MS = 1_000; // 1 second initial backoff
 const PING_INTERVAL_MS = 15_000; // send ping every 15s to keep connection alive
 
 // ---------------------------------------------------------------------------
-// SquatSenseWS class
+// FreeFormWS class
 // ---------------------------------------------------------------------------
 
 export type MessageHandler = (message: WebSocketMessage) => void;
 export type CloseHandler = (event: CloseEvent) => void;
 export type ErrorHandler = (event: Event) => void;
 
-export class SquatSenseWS {
+export class FreeFormWS {
   private ws: WebSocket | null = null;
   private exerciseType: string = "squat";
   private sessionId: string | null = null;

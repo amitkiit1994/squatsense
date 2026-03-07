@@ -100,7 +100,7 @@ export default function InjuriesPage() {
               aria-checked={hasInjuries}
               onClick={() => setHasInjuries(!hasInjuries)}
               className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                hasInjuries ? "bg-violet-600" : "bg-zinc-600"
+                hasInjuries ? "bg-orange-600" : "bg-zinc-600"
               }`}
             >
               <span
@@ -166,7 +166,7 @@ export default function InjuriesPage() {
                     id="bodyArea"
                     value={bodyArea}
                     onChange={(e) => setBodyArea(e.target.value)}
-                    className="flex h-10 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                    className="flex h-10 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   >
                     <option value="">Select area...</option>
                     {BODY_AREAS.map((area) => (
@@ -187,7 +187,7 @@ export default function InjuriesPage() {
                         onClick={() => setSide(s)}
                         className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                           side === s
-                            ? "border-violet-500 bg-violet-950 text-violet-300"
+                            ? "border-orange-500 bg-orange-950 text-orange-300"
                             : "border-zinc-700 bg-zinc-900 text-zinc-400 hover:bg-zinc-800"
                         }`}
                       >

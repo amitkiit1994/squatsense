@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Privacy Policy | SquatSense",
+  title: "Privacy Policy | FreeForm Fitness",
 };
 
 export default function PrivacyPage() {
@@ -11,7 +11,7 @@ export default function PrivacyPage() {
         href="/"
         className="text-blue-400 hover:text-blue-300 text-sm mb-6 inline-block"
       >
-        &larr; Back to SquatSense
+        &larr; Back to FreeForm Fitness
       </Link>
 
       <h1 className="text-3xl font-bold text-zinc-50 mb-6">Privacy Policy</h1>
@@ -127,7 +127,7 @@ export default function PrivacyPage() {
           </h2>
           <p className="text-zinc-300">
             For privacy-related questions, contact us at{" "}
-            <span className="text-blue-400">privacy@squatsense.com</span>.
+            <span className="text-blue-400">privacy@freeformfitness.ai</span>.
           </p>
         </div>
       </section>

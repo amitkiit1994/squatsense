@@ -86,14 +86,14 @@ export default function GoalsPage() {
                 onClick={() => setSelected(goal.id)}
                 className={`flex w-full items-start gap-4 rounded-xl border-2 p-4 text-left transition-all ${
                   isSelected
-                    ? "border-violet-500 bg-violet-950/40"
+                    ? "border-orange-500 bg-orange-950/40"
                     : "border-zinc-700 bg-zinc-900 hover:border-zinc-600 hover:bg-zinc-800"
                 }`}
               >
                 <div
                   className={`flex-shrink-0 rounded-lg p-2 ${
                     isSelected
-                      ? "bg-violet-900 text-violet-400"
+                      ? "bg-orange-900 text-orange-400"
                       : "bg-zinc-800 text-zinc-400"
                   }`}
                 >
@@ -103,7 +103,7 @@ export default function GoalsPage() {
                   <h3
                     className={`text-sm font-semibold ${
                       isSelected
-                        ? "text-violet-100"
+                        ? "text-orange-100"
                         : "text-white"
                     }`}
                   >
@@ -112,7 +112,7 @@ export default function GoalsPage() {
                   <p
                     className={`mt-0.5 text-sm ${
                       isSelected
-                        ? "text-violet-300"
+                        ? "text-orange-300"
                         : "text-zinc-400"
                     }`}
                   >
@@ -123,7 +123,7 @@ export default function GoalsPage() {
                   <div
                     className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition-colors ${
                       isSelected
-                        ? "border-violet-600 bg-violet-600"
+                        ? "border-orange-600 bg-orange-600"
                         : "border-zinc-600"
                     }`}
                   >

@@ -270,7 +270,7 @@ export default function SettingsPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `squatsense-data-${new Date().toISOString().split("T")[0]}.json`;
+      a.download = `freeformfitness-data-${new Date().toISOString().split("T")[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -332,7 +332,7 @@ export default function SettingsPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-blue-400 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-cyan-400 bg-clip-text text-transparent">
             Settings
           </span>
         </h1>
@@ -345,14 +345,14 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <User className="h-5 w-5 text-violet-400" />
+            <User className="h-5 w-5 text-orange-400" />
             Profile Information
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Avatar */}
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 border border-violet-500/20 text-2xl font-bold text-violet-400">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 border border-orange-500/20 text-2xl font-bold text-orange-400">
               {name
                 ? name
                     .split(" ")
@@ -398,7 +398,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Target className="h-5 w-5 text-violet-400" />
+            <Target className="h-5 w-5 text-orange-400" />
             Training Goals
           </CardTitle>
         </CardHeader>
@@ -446,7 +446,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <AlertTriangle className="h-5 w-5 text-violet-400" />
+            <AlertTriangle className="h-5 w-5 text-orange-400" />
             Injury History
           </CardTitle>
         </CardHeader>
@@ -547,7 +547,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Dumbbell className="h-5 w-5 text-violet-400" />
+            <Dumbbell className="h-5 w-5 text-orange-400" />
             Training Maxes (lbs/kg)
           </CardTitle>
         </CardHeader>
@@ -580,7 +580,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Shield className="h-5 w-5 text-violet-400" />
+            <Shield className="h-5 w-5 text-orange-400" />
             Privacy
           </CardTitle>
         </CardHeader>
@@ -618,7 +618,7 @@ export default function SettingsPage() {
           {/* Change Password */}
           <div className="rounded-lg border border-zinc-800 p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <Key className="h-4 w-4 text-violet-400" />
+              <Key className="h-4 w-4 text-orange-400" />
               <Label className="text-sm font-medium">Change Password</Label>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -730,7 +730,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Bell className="h-5 w-5 text-violet-400" />
+            <Bell className="h-5 w-5 text-orange-400" />
             Notification Preferences
           </CardTitle>
         </CardHeader>
@@ -780,7 +780,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Camera className="h-5 w-5 text-violet-400" />
+            <Camera className="h-5 w-5 text-orange-400" />
             Camera Settings
           </CardTitle>
         </CardHeader>

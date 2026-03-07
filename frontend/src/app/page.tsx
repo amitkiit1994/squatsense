@@ -44,7 +44,7 @@ function WaitlistForm({ id, glow }: { id: string; glow?: boolean }) {
       <div className="glass-card rounded-xl border border-emerald-500/30 px-6 py-4 text-emerald-300">
         <p className="font-semibold">You&apos;re on the list!</p>
         <p className="mt-1 text-sm text-emerald-400/80">
-          We&apos;ll notify you as soon as SquatSense is ready. Check your inbox for a confirmation.
+          We&apos;ll notify you as soon as FreeForm Fitness is ready. Check your inbox for a confirmation.
         </p>
       </div>
     );
@@ -59,12 +59,12 @@ function WaitlistForm({ id, glow }: { id: string; glow?: boolean }) {
           placeholder="Enter your email"
           value={email}
           onChange={(e) => { setEmail(e.target.value); if (status === "error") setStatus("idle"); }}
-          className="flex-1 rounded-xl border border-zinc-700/50 bg-zinc-900/80 px-4 py-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none backdrop-blur-sm transition focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50"
+          className="flex-1 rounded-xl border border-zinc-700/50 bg-zinc-900/80 px-4 py-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none backdrop-blur-sm transition focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50"
         />
         <button
           type="submit"
           disabled={status === "submitting"}
-          className={`rounded-xl bg-violet-600 px-7 py-3.5 text-sm font-semibold text-white transition hover:bg-violet-500 disabled:opacity-60 disabled:cursor-not-allowed ${glow ? "animate-glow-pulse" : ""}`}
+          className={`rounded-xl bg-orange-600 px-7 py-3.5 text-sm font-semibold text-white transition hover:bg-orange-500 disabled:opacity-60 disabled:cursor-not-allowed ${glow ? "animate-glow-pulse" : ""}`}
         >
           {status === "submitting" ? "Joining..." : "Join Waitlist"}
         </button>
@@ -81,8 +81,8 @@ function WaitlistForm({ id, glow }: { id: string; glow?: boolean }) {
 /* ------------------------------------------------------------------ */
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-violet-500/20 bg-violet-500/5 px-3 py-1 text-xs font-medium uppercase tracking-widest text-violet-400 backdrop-blur-sm">
-      <span className="h-1 w-1 rounded-full bg-violet-400" />
+    <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-orange-500/20 bg-orange-500/5 px-3 py-1 text-xs font-medium uppercase tracking-widest text-orange-400 backdrop-blur-sm">
+      <span className="h-1 w-1 rounded-full bg-orange-400" />
       {children}
     </span>
   );
@@ -99,7 +99,7 @@ function FeatureCard({
 }) {
   return (
     <div className="gradient-border glass-card group rounded-2xl p-4 text-left transition-all duration-300 hover:bg-zinc-800/40 active:scale-[0.98] sm:p-6 sm:hover:scale-[1.02]">
-      <div className="mb-3 inline-flex rounded-lg bg-violet-500/10 p-2.5 text-violet-400 transition-colors group-hover:bg-violet-500/20">
+      <div className="mb-3 inline-flex rounded-lg bg-orange-500/10 p-2.5 text-orange-400 transition-colors group-hover:bg-orange-500/20">
         {icon}
       </div>
       <h3 className="font-semibold text-zinc-100">{title}</h3>
@@ -120,8 +120,8 @@ function StepCard({
   return (
     <div className="group flex flex-col items-center text-center">
       <div className="relative mb-4">
-        <div className="absolute inset-0 rounded-full bg-violet-500/20 blur-lg transition-all group-hover:bg-violet-500/30" />
-        <div className="relative flex h-14 w-14 items-center justify-center rounded-full border border-violet-500/30 bg-zinc-900 text-lg font-bold text-violet-400">
+        <div className="absolute inset-0 rounded-full bg-orange-500/20 blur-lg transition-all group-hover:bg-orange-500/30" />
+        <div className="relative flex h-14 w-14 items-center justify-center rounded-full border border-orange-500/30 bg-zinc-900 text-lg font-bold text-orange-400">
           {step}
         </div>
       </div>
@@ -134,7 +134,7 @@ function StepCard({
 function PersonaCard({ title, desc, children }: { title: string; desc: string; children: React.ReactNode }) {
   return (
     <div className="gradient-border glass-card rounded-xl p-4 text-center transition-all duration-300 hover:bg-zinc-800/40 active:scale-[0.98] sm:p-5">
-      <div className="inline-flex rounded-lg bg-violet-500/10 p-2.5 text-violet-400">{children}</div>
+      <div className="inline-flex rounded-lg bg-orange-500/10 p-2.5 text-orange-400">{children}</div>
       <h3 className="mt-3 text-sm font-semibold text-zinc-100">{title}</h3>
       <p className="mt-1.5 text-xs leading-relaxed text-zinc-500">{desc}</p>
     </div>
@@ -144,7 +144,7 @@ function PersonaCard({ title, desc, children }: { title: string; desc: string; c
 function MovementCard({ name, children }: { name: string; children: React.ReactNode }) {
   return (
     <div className="gradient-border glass-card rounded-xl px-3 py-4 text-center transition-all duration-300 hover:bg-zinc-800/40 active:scale-[0.98] sm:px-4 sm:py-5 sm:hover:scale-105">
-      <div className="inline-flex text-violet-400">{children}</div>
+      <div className="inline-flex text-orange-400">{children}</div>
       <p className="mt-2 text-sm font-medium text-zinc-300">{name}</p>
     </div>
   );
@@ -175,58 +175,33 @@ export default function WaitlistPage() {
 
       {/* ── Animated aurora background ───────────────────────────── */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="animate-aurora absolute -top-1/2 left-1/4 h-[300px] w-[300px] sm:h-[600px] sm:w-[600px] md:h-[800px] md:w-[800px] rounded-full bg-violet-600/8 blur-[80px] sm:blur-[120px] md:blur-[150px]" />
+        <div className="animate-aurora absolute -top-1/2 left-1/4 h-[300px] w-[300px] sm:h-[600px] sm:w-[600px] md:h-[800px] md:w-[800px] rounded-full bg-orange-600/8 blur-[80px] sm:blur-[120px] md:blur-[150px]" />
         <div className="animate-aurora-slow absolute -bottom-1/3 right-1/4 h-[200px] w-[200px] sm:h-[400px] sm:w-[400px] md:h-[600px] md:w-[600px] rounded-full bg-blue-600/6 blur-[60px] sm:blur-[100px] md:blur-[120px]" />
         <div className="animate-aurora absolute top-1/3 right-1/3 hidden sm:block h-[400px] w-[400px] rounded-full bg-fuchsia-600/4 blur-[100px]" />
       </div>
 
-      {/* ── Nav ──────────────────────────────────────────────────── */}
-      <nav className="relative z-10 flex items-center justify-between px-4 py-4 sm:px-6 sm:py-5 md:px-12">
-        <div className="flex items-center gap-2.5">
-          <svg viewBox="0 0 192 192" className="h-9 w-9" aria-hidden="true">
-            <rect width="192" height="192" rx="32" fill="#18181b" />
-            <g transform="translate(96,96)" fill="none" stroke="#a78bfa" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="0" cy="-38" r="10" fill="#a78bfa" />
-              <line x1="0" y1="-28" x2="-4" y2="0" />
-              <line x1="-4" y1="-20" x2="-24" y2="-24" />
-              <line x1="-4" y1="-20" x2="16" y2="-24" />
-              <line x1="-32" y1="-24" x2="24" y2="-24" strokeWidth="4" />
-              <rect x="-38" y="-30" width="8" height="12" rx="2" fill="#a78bfa" />
-              <rect x="22" y="-30" width="8" height="12" rx="2" fill="#a78bfa" />
-              <line x1="-4" y1="0" x2="-16" y2="4" />
-              <line x1="-4" y1="0" x2="10" y2="4" />
-              <line x1="-16" y1="4" x2="-24" y2="16" />
-              <line x1="10" y1="4" x2="18" y2="16" />
-              <line x1="-24" y1="16" x2="-20" y2="40" />
-              <line x1="18" y1="16" x2="14" y2="40" />
-              <line x1="-20" y1="40" x2="-28" y2="42" />
-              <line x1="14" y1="40" x2="22" y2="42" />
-            </g>
-          </svg>
-          <span className="text-lg font-bold tracking-tight">SquatSense</span>
-        </div>
-      </nav>
-
       {/* ── Hero ─────────────────────────────────────────────────── */}
-      <section className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-4 pt-12 pb-16 text-center sm:px-6 sm:pt-20 sm:pb-28 md:pt-32">
-        <div className="animate-fade-in-up mb-4 sm:mb-6 inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/5 px-3 py-1 text-xs sm:text-sm sm:px-4 sm:py-1.5 text-violet-300 backdrop-blur-sm">
+      <section className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-4 pt-4 pb-16 text-center sm:px-6 sm:pt-8 sm:pb-28 md:pt-12">
+        <img src="/logo.png" alt="FreeForm Fitness" className="animate-fade-in-up mb-0 h-36 w-auto sm:h-60" />
+
+        <div className="animate-fade-in-up mb-4 sm:mb-6 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/5 px-3 py-1 text-xs sm:text-sm sm:px-4 sm:py-1.5 text-orange-300 backdrop-blur-sm">
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-violet-400" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-400" />
           </span>
           Coming Soon
         </div>
 
         <h1 className="animate-fade-in-up delay-100 text-3xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl md:text-7xl">
-          Stop Guessing.
+          Measure the Movement.
           <br />
-          <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-blue-400 bg-clip-text text-transparent">
-            Start Knowing.
+          <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-cyan-400 bg-clip-text text-transparent">
+            Master the Form.
           </span>
         </h1>
 
         <p className="animate-fade-in-up delay-200 mt-4 max-w-xl text-sm leading-relaxed text-zinc-400 sm:mt-6 sm:text-lg md:text-xl">
-          SquatSense uses computer vision to analyse your lifts in real-time — tracking
+          FreeForm Fitness uses computer vision to analyse your lifts in real-time — tracking
           joint angles, range of motion, bar path, and fatigue across squats, deadlifts,
           bench press, overhead press, and more. No wearables. No hardware. Just your phone camera.
         </p>
@@ -240,7 +215,7 @@ export default function WaitlistPage() {
             Already invited?{" "}
             <a
               href="/login"
-              className="font-medium text-violet-400 hover:text-violet-300 transition-colors"
+              className="font-medium text-orange-400 hover:text-orange-300 transition-colors"
             >
               Sign in
             </a>
@@ -249,7 +224,7 @@ export default function WaitlistPage() {
 
         {/* Decorative floating elements — hidden on small screens */}
         <div className="pointer-events-none absolute -right-12 top-1/3 animate-float opacity-20 hidden sm:block">
-          <svg viewBox="0 0 48 48" className="h-16 w-16 text-violet-400" fill="none" stroke="currentColor" strokeWidth="1">
+          <svg viewBox="0 0 48 48" className="h-16 w-16 text-orange-400" fill="none" stroke="currentColor" strokeWidth="1">
             <circle cx="24" cy="24" r="20" />
             <circle cx="24" cy="24" r="8" />
             <line x1="24" y1="4" x2="24" y2="16" />
@@ -286,7 +261,7 @@ export default function WaitlistPage() {
               { value: "50%", label: "of injuries are from poor form" },
             ].map((stat) => (
               <div key={stat.value} className="gradient-border glass-card rounded-xl p-4 sm:p-6">
-                <p className="text-2xl font-bold bg-gradient-to-br from-violet-400 to-blue-400 bg-clip-text text-transparent sm:text-3xl">{stat.value}</p>
+                <p className="text-2xl font-bold bg-gradient-to-br from-orange-400 to-blue-400 bg-clip-text text-transparent sm:text-3xl">{stat.value}</p>
                 <p className="mt-2 text-sm text-zinc-400">{stat.label}</p>
               </div>
             ))}
@@ -304,7 +279,7 @@ export default function WaitlistPage() {
           <div className="mt-10 grid gap-8 sm:mt-16 sm:grid-cols-3 sm:gap-8">
             {/* Connector lines between steps (desktop only) */}
             <div className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 sm:block" style={{ top: "calc(50% - 20px)", width: "60%" }}>
-              <div className="h-px w-full bg-gradient-to-r from-transparent via-violet-500/20 to-transparent" />
+              <div className="h-px w-full bg-gradient-to-r from-transparent via-orange-500/20 to-transparent" />
             </div>
             <StepCard
               step="1"
@@ -314,7 +289,7 @@ export default function WaitlistPage() {
             <StepCard
               step="2"
               title="Analyse"
-              description="SquatSense measures joint angles, range of motion, bar path, movement tempo, and fatigue markers — frame by frame, rep by rep, across 8 core lifts."
+              description="FreeForm Fitness measures joint angles, range of motion, bar path, movement tempo, and fatigue markers — frame by frame, rep by rep, across 8 core lifts."
             />
             <StepCard
               step="3"
@@ -335,7 +310,7 @@ export default function WaitlistPage() {
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-sm text-zinc-400 sm:mt-5 sm:text-base">
               Powered by MediaPipe pose estimation and custom biomechanics algorithms,
-              SquatSense delivers analysis that used to require a sports lab.
+              FreeForm Fitness delivers analysis that used to require a sports lab.
             </p>
           </div>
 
@@ -406,7 +381,7 @@ export default function WaitlistPage() {
             Every lift, covered
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-sm text-zinc-400 sm:mt-5 sm:text-base">
-            SquatSense launches with full support for the compound movements that matter most.
+            FreeForm Fitness launches with full support for the compound movements that matter most.
             Each exercise has its own biomechanical model and scoring criteria.
           </p>
           <div className="mt-8 grid grid-cols-2 gap-2 sm:mt-12 sm:gap-3 sm:grid-cols-4">
@@ -510,13 +485,13 @@ export default function WaitlistPage() {
       {/* ── Differentiator ───────────────────────────────────────── */}
       <section className="relative z-10 border-t border-zinc-800/40 py-14 sm:py-20 md:py-24">
         <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
-          <SectionLabel>Why SquatSense</SectionLabel>
+          <SectionLabel>Why FreeForm Fitness</SectionLabel>
           <h2 className="text-2xl font-bold sm:text-3xl md:text-4xl">
             No wearables. No hardware. No expensive kit.
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-sm text-zinc-400 leading-relaxed sm:mt-5 sm:text-base">
             Other solutions need force plates, depth cameras, or wearable sensors.
-            SquatSense runs entirely on your phone&apos;s camera — the same device you already bring
+            FreeForm Fitness runs entirely on your phone&apos;s camera — the same device you already bring
             to the gym. That means zero setup cost, instant start, and nothing to charge.
           </p>
 
@@ -543,7 +518,7 @@ export default function WaitlistPage() {
               </ul>
             </div>
             <div className="glass-card p-5 text-left border-t sm:border-t-0 sm:border-l border-zinc-800/60 sm:p-7">
-              <p className="text-sm font-medium text-violet-400">SquatSense</p>
+              <p className="text-sm font-medium text-orange-400">FreeForm Fitness</p>
               <ul className="mt-4 space-y-3 text-sm text-zinc-400">
                 <li className="flex items-start gap-2.5">
                   <span className="mt-0.5 text-emerald-400">&#x2713;</span>
@@ -613,13 +588,13 @@ export default function WaitlistPage() {
 
       {/* ── Bottom CTA ───────────────────────────────────────────── */}
       <section className="relative z-10 border-t border-zinc-800/40 py-14 sm:py-20 md:py-24">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-violet-600/5 via-transparent to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-orange-600/5 via-transparent to-transparent" />
         <div className="relative mx-auto max-w-xl px-4 text-center sm:px-6">
           <h2 className="text-2xl font-bold sm:text-3xl md:text-4xl">
             Ready to train smarter?
           </h2>
           <p className="mt-3 text-sm text-zinc-400 sm:mt-4 sm:text-base">
-            Be first in line when SquatSense launches. Early members get free access.
+            Be first in line when FreeForm Fitness launches. Early members get free access.
           </p>
           <div className="mt-6 sm:mt-8">
             <WaitlistForm id="bottom-form" />
@@ -629,7 +604,7 @@ export default function WaitlistPage() {
 
       {/* ── Footer ───────────────────────────────────────────────── */}
       <footer className="relative z-10 border-t border-zinc-800/40 py-6 text-center text-xs text-zinc-600 sm:py-8 sm:text-sm">
-        &copy; {new Date().getFullYear()} SquatSense. All rights reserved.
+        &copy; {new Date().getFullYear()} FreeForm Fitness. All rights reserved.
       </footer>
     </div>
   );

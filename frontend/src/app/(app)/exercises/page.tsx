@@ -186,7 +186,7 @@ export default function ExercisesPage() {
     <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-blue-400 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-cyan-400 bg-clip-text text-transparent">
             Select Exercise
           </span>
         </h1>
@@ -197,12 +197,12 @@ export default function ExercisesPage() {
 
       {/* Search Input */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-violet-400/60" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-orange-400/60" />
         <Input
           placeholder="Search exercises..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 rounded-xl border-zinc-700/50 bg-zinc-900/80 backdrop-blur-sm focus-visible:border-violet-500 focus-visible:ring-violet-500/50"
+          className="pl-9 rounded-xl border-zinc-700/50 bg-zinc-900/80 backdrop-blur-sm focus-visible:border-orange-500 focus-visible:ring-orange-500/50"
         />
       </div>
 
@@ -330,7 +330,7 @@ export default function ExercisesPage() {
                 {/* Key Angles */}
                 {Object.keys(tutorial.key_angles).length > 0 && (
                   <div>
-                    <h3 className="flex items-center gap-2 text-sm font-semibold text-violet-400 mb-2">
+                    <h3 className="flex items-center gap-2 text-sm font-semibold text-orange-400 mb-2">
                       <Info className="h-4 w-4" />
                       Key Angles
                     </h3>

@@ -288,7 +288,7 @@ export default function SessionPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `squatsense-session-${session.id}.json`;
+    a.download = `freeformfitness-session-${session.id}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -307,7 +307,7 @@ export default function SessionPage() {
       ? Math.round(session.avg_form_score)
       : "N/A";
     const summary = [
-      "SquatSense Session Report",
+      "FreeForm Fitness Session Report",
       `Exercise: ${session.exercise_type.replace(/_/g, " ")}`,
       `Date: ${date}`,
       `Total Reps: ${session.total_reps} | Sets: ${session.total_sets}`,
@@ -385,7 +385,7 @@ export default function SessionPage() {
         </Button>
         <div>
           <h1 className="text-xl font-bold capitalize sm:text-2xl">
-            <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-blue-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-cyan-400 bg-clip-text text-transparent">
               {session.exercise_type.replace(/_/g, " ")} Session
             </span>
           </h1>
@@ -404,7 +404,7 @@ export default function SessionPage() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card>
           <CardContent className="flex flex-col items-center py-4">
-            <Dumbbell className="mb-1 h-5 w-5 text-violet-400" />
+            <Dumbbell className="mb-1 h-5 w-5 text-orange-400" />
             <p className="text-xs text-muted-foreground">Exercise</p>
             <p className="font-semibold capitalize text-sm">
               {session.exercise_type.replace(/_/g, " ")}
@@ -413,21 +413,21 @@ export default function SessionPage() {
         </Card>
         <Card>
           <CardContent className="flex flex-col items-center py-4">
-            <Repeat className="mb-1 h-5 w-5 text-violet-400" />
+            <Repeat className="mb-1 h-5 w-5 text-orange-400" />
             <p className="text-xs text-muted-foreground">Total Reps</p>
             <p className="text-xl font-bold">{session.total_reps}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="flex flex-col items-center py-4">
-            <Layers className="mb-1 h-5 w-5 text-violet-400" />
+            <Layers className="mb-1 h-5 w-5 text-orange-400" />
             <p className="text-xs text-muted-foreground">Sets</p>
             <p className="text-xl font-bold">{session.total_sets}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="flex flex-col items-center py-4">
-            <Clock className="mb-1 h-5 w-5 text-violet-400" />
+            <Clock className="mb-1 h-5 w-5 text-orange-400" />
             <p className="text-xs text-muted-foreground">Duration</p>
             <p className="text-xl font-bold">
               {formatDuration(duration)}
@@ -731,7 +731,7 @@ export default function SessionPage() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <TrendingDown className="h-5 w-5 text-violet-400" />
+            <TrendingDown className="h-5 w-5 text-orange-400" />
             Fatigue Analysis
           </CardTitle>
         </CardHeader>
@@ -773,7 +773,7 @@ export default function SessionPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Brain className="h-5 w-5 text-violet-400" />
+              <Brain className="h-5 w-5 text-orange-400" />
               AI Coaching Feedback
             </CardTitle>
           </CardHeader>
@@ -816,7 +816,7 @@ export default function SessionPage() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Share2 className="h-5 w-5 text-violet-400" />
+            <Share2 className="h-5 w-5 text-orange-400" />
             Share &amp; Export
           </CardTitle>
         </CardHeader>

@@ -9,13 +9,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "SquatSense",
-  description: "AI-powered movement intelligence platform",
+  title: "FreeForm Fitness",
+  description: "Measure the Movement. Master the Form.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "SquatSense",
+    title: "FreeForm Fitness",
   },
 };
 

@@ -2,7 +2,7 @@
  * Auth token management using localStorage.
  *
  * Provides functions to read, write, and clear JWT tokens for
- * the SquatSense API. Tokens are stored under well-known keys
+ * the FreeForm Fitness API. Tokens are stored under well-known keys
  * so that both the API client and React hooks can access them.
  */
 

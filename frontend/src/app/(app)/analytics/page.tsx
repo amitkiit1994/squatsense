@@ -371,7 +371,7 @@ export default function AnalyticsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-blue-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-cyan-400 bg-clip-text text-transparent">
               Progress Analytics
             </span>
           </h1>
@@ -382,7 +382,7 @@ export default function AnalyticsPage() {
 
         {/* Exercise Filter */}
         <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-violet-400" />
+          <Filter className="h-4 w-4 text-orange-400" />
           <Select value={exerciseFilter} onValueChange={setExerciseFilter}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select exercise" />
@@ -467,7 +467,7 @@ export default function AnalyticsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <TrendingUp className="h-5 w-5 text-violet-400" />
+            <TrendingUp className="h-5 w-5 text-orange-400" />
             Form Score Trend
           </CardTitle>
         </CardHeader>
@@ -513,7 +513,7 @@ export default function AnalyticsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <BarChart3 className="h-5 w-5 text-violet-400" />
+            <BarChart3 className="h-5 w-5 text-orange-400" />
             Strength Progression
           </CardTitle>
         </CardHeader>
@@ -666,7 +666,7 @@ export default function AnalyticsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Trophy className="h-5 w-5 text-violet-400" />
+            <Trophy className="h-5 w-5 text-orange-400" />
             Personal Records
           </CardTitle>
         </CardHeader>
@@ -739,7 +739,7 @@ export default function AnalyticsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <CalendarDays className="h-5 w-5 text-violet-400" />
+            <CalendarDays className="h-5 w-5 text-orange-400" />
             Training Consistency
           </CardTitle>
         </CardHeader>
@@ -783,8 +783,8 @@ export default function AnalyticsPage() {
                           : cell.count === 0
                           ? "bg-muted"
                           : cell.count === 1
-                          ? "bg-violet-500/30"
-                          : "bg-violet-500 text-white"
+                          ? "bg-orange-500/30"
+                          : "bg-orange-500 text-white"
                       }`}
                       title={
                         cell.date
@@ -802,8 +802,8 @@ export default function AnalyticsPage() {
               <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
                 <span>Less</span>
                 <div className="h-3 w-3 rounded bg-muted" />
-                <div className="h-3 w-3 rounded bg-violet-500/30" />
-                <div className="h-3 w-3 rounded bg-violet-500" />
+                <div className="h-3 w-3 rounded bg-orange-500/30" />
+                <div className="h-3 w-3 rounded bg-orange-500" />
                 <span>More</span>
               </div>
             </div>

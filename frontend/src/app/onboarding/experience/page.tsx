@@ -58,10 +58,10 @@ const COLOR_CLASSES: Record<string, { selected: string; icon: string; text: stri
     title: "text-amber-100",
   },
   purple: {
-    selected: "border-violet-500 bg-violet-950/40",
-    icon: "bg-violet-900 text-violet-400",
-    text: "text-violet-300",
-    title: "text-violet-100",
+    selected: "border-orange-500 bg-orange-950/40",
+    icon: "bg-orange-900 text-orange-400",
+    text: "text-orange-300",
+    title: "text-orange-100",
   },
 };
 

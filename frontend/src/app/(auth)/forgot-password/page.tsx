@@ -34,31 +34,7 @@ export default function ForgotPasswordPage() {
     <div className="w-full max-w-md">
       {/* Logo / Title */}
       <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-800 shadow-lg shadow-violet-600/20">
-          <svg viewBox="0 0 192 192" className="h-10 w-10" aria-hidden="true">
-            <g transform="translate(96,96)" fill="none" stroke="#a78bfa" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="0" cy="-38" r="10" fill="#a78bfa" />
-              <line x1="0" y1="-28" x2="-4" y2="0" />
-              <line x1="-4" y1="-20" x2="-24" y2="-24" />
-              <line x1="-4" y1="-20" x2="16" y2="-24" />
-              <line x1="-32" y1="-24" x2="24" y2="-24" strokeWidth="4" />
-              <rect x="-38" y="-30" width="8" height="12" rx="2" fill="#a78bfa" />
-              <rect x="22" y="-30" width="8" height="12" rx="2" fill="#a78bfa" />
-              <line x1="-4" y1="0" x2="-16" y2="4" />
-              <line x1="-4" y1="0" x2="10" y2="4" />
-              <line x1="-16" y1="4" x2="-24" y2="16" />
-              <line x1="10" y1="4" x2="18" y2="16" />
-              <line x1="-24" y1="16" x2="-20" y2="40" />
-              <line x1="18" y1="16" x2="14" y2="40" />
-              <line x1="-20" y1="40" x2="-28" y2="42" />
-              <line x1="14" y1="40" x2="22" y2="42" />
-            </g>
-          </svg>
-        </div>
-        <h1 className="text-3xl font-bold text-white">SquatSense</h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          AI-powered movement intelligence
-        </p>
+        <img src="/logo.png" alt="FreeForm Fitness" className="mx-auto h-48 w-auto" />
       </div>
 
       <Card className="glass-card gradient-border border-zinc-800">
@@ -80,7 +56,7 @@ export default function ForgotPasswordPage() {
               <div className="text-center">
                 <Link
                   href="/login"
-                  className="text-sm font-medium text-violet-400 hover:text-violet-300 transition-colors"
+                  className="text-sm font-medium text-orange-400 hover:text-orange-300 transition-colors"
                 >
                   Back to sign in
                 </Link>
@@ -107,7 +83,7 @@ export default function ForgotPasswordPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     autoComplete="email"
-                    className="border-zinc-700 bg-zinc-800 text-white placeholder:text-zinc-500 focus:ring-violet-500"
+                    className="border-zinc-700 bg-zinc-800 text-white placeholder:text-zinc-500 focus:ring-orange-500"
                   />
                 </div>
 
@@ -150,7 +126,7 @@ export default function ForgotPasswordPage() {
                 Remember your password?{" "}
                 <Link
                   href="/login"
-                  className="font-medium text-violet-400 hover:text-violet-300 transition-colors"
+                  className="font-medium text-orange-400 hover:text-orange-300 transition-colors"
                 >
                   Sign in
                 </Link>

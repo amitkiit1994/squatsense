@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Auth hook for SquatSense.
+ * Auth hook for FreeForm Fitness.
  *
  * Provides the current user, loading state, and actions for login,
  * registration, logout, and profile refresh. Automatically loads the

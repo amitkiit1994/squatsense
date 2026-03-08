@@ -295,18 +295,29 @@ def _build_reset_email(to_email: str, reset_url: str) -> MIMEMultipart:
 
 def _send_reset_email_sync(to_email: str, reset_url: str) -> None:
     """Send the reset email via SMTP (blocking, run in thread)."""
+    logger.info(
+        "[EMAIL DEBUG] Attempting reset email to=%s host=%s port=%s user=%s",
+        to_email, settings.SMTP_HOST, settings.SMTP_PORT, settings.SMTP_USER,
+    )
     if not settings.SMTP_HOST or not settings.SMTP_USER:
-        logger.info("SMTP not configured. Reset URL for %s: %s", to_email, reset_url)
+        logger.warning(
+            "[EMAIL DEBUG] SMTP not configured (host=%s, user=%s). Reset URL for %s: %s",
+            settings.SMTP_HOST, settings.SMTP_USER, to_email, reset_url,
+        )
         return
 
     try:
         msg = _build_reset_email(to_email, reset_url)
         with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+            server.set_debuglevel(1)
             server.starttls()
+            logger.info("[EMAIL DEBUG] STARTTLS OK, logging in as %s", settings.SMTP_USER)
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD or "")
+            logger.info("[EMAIL DEBUG] Login OK, sending message to %s", to_email)
             server.send_message(msg)
+            logger.info("[EMAIL DEBUG] Reset email sent successfully to %s", to_email)
     except Exception:
-        logger.exception("Failed to send reset email to %s", to_email)
+        logger.exception("[EMAIL DEBUG] Failed to send reset email to %s", to_email)
 
 
 async def _send_reset_email(to_email: str, reset_url: str) -> None:

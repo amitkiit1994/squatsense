@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
-    SMTP_FROM_EMAIL: str = "hello@freeformfitness.ai"
+    SMTP_FROM_EMAIL: str = "amit@freeformfitness.ai"
     SMTP_FROM_NAME: str = "FreeForm Fitness"
 
 

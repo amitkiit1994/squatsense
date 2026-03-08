@@ -71,17 +71,29 @@ def _build_welcome_email(to_email: str) -> MIMEMultipart:
 
 def _send_email_sync(to_email: str) -> None:
     """Send the welcome email via SMTP (blocking, run in thread)."""
+    logger.info(
+        "[EMAIL DEBUG] Attempting welcome email to=%s host=%s port=%s user=%s",
+        to_email, settings.SMTP_HOST, settings.SMTP_PORT, settings.SMTP_USER,
+    )
     if not settings.SMTP_HOST or not settings.SMTP_USER:
+        logger.warning(
+            "[EMAIL DEBUG] SMTP not configured (host=%s, user=%s). Skipping welcome email to %s",
+            settings.SMTP_HOST, settings.SMTP_USER, to_email,
+        )
         return
 
     try:
         msg = _build_welcome_email(to_email)
         with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+            server.set_debuglevel(1)
             server.starttls()
+            logger.info("[EMAIL DEBUG] STARTTLS OK, logging in as %s", settings.SMTP_USER)
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD or "")
+            logger.info("[EMAIL DEBUG] Login OK, sending message to %s", to_email)
             server.send_message(msg)
+            logger.info("[EMAIL DEBUG] Welcome email sent successfully to %s", to_email)
     except Exception:
-        logger.exception("Failed to send welcome email to %s", to_email)
+        logger.exception("[EMAIL DEBUG] Failed to send welcome email to %s", to_email)
 
 
 async def _send_welcome_email(to_email: str) -> None:

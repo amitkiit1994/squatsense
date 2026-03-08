@@ -9,9 +9,35 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "FreeForm Fitness",
-  description: "Measure the Movement. Master the Form.",
+  title: "FreeForm Fitness — AI-Powered Movement Analysis",
+  description:
+    "Real-time form scoring, fatigue detection, and AI coaching for strength training — using just your phone camera. No wearables needed.",
   manifest: "/manifest.json",
+  metadataBase: new URL("https://freeformfitness.ai"),
+  openGraph: {
+    title: "FreeForm Fitness — AI-Powered Movement Analysis",
+    description:
+      "Real-time form scoring, fatigue detection, and AI coaching for strength training — using just your phone camera. No wearables needed.",
+    url: "https://freeformfitness.ai",
+    siteName: "FreeForm Fitness",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "FreeForm Fitness — AI movement analysis from your phone camera",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "FreeForm Fitness — AI-Powered Movement Analysis",
+    description:
+      "Real-time form scoring, fatigue detection, and AI coaching for strength training — using just your phone camera.",
+    images: ["/og-image.png"],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

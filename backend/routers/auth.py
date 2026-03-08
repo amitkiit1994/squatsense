@@ -6,13 +6,11 @@ import asyncio
 import hashlib
 import logging
 import secrets
-import smtplib
 from datetime import datetime, timedelta, timezone
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from uuid import UUID
 
 import bcrypt
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from jose import JWTError, jwt
 from sqlalchemy import delete, select
@@ -248,22 +246,12 @@ def _create_password_reset_token(user_id: UUID, password_hash: str) -> str:
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
-def _build_reset_email(to_email: str, reset_url: str) -> MIMEMultipart:
-    """Build the password reset email."""
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = "Reset your FreeForm Fitness password"
-    msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
-    msg["To"] = to_email
+RESEND_API_URL = "https://api.resend.com/emails"
 
-    text = (
-        "You requested a password reset for your FreeForm Fitness account.\n\n"
-        f"Click here to reset your password:\n{reset_url}\n\n"
-        "This link expires in 15 minutes. If you didn't request this, "
-        "you can safely ignore this email.\n\n"
-        "— The FreeForm Fitness Team"
-    )
 
-    html = f"""\
+def _build_reset_html(reset_url: str) -> str:
+    """Build the password reset email HTML."""
+    return f"""\
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; color: #e4e4e7; background-color: #18181b; border-radius: 16px;">
       <div style="text-align: center; margin-bottom: 24px;">
         <h1 style="font-size: 24px; font-weight: 700; margin: 0; color: #fb923c;">FreeForm Fitness</h1>
@@ -288,41 +276,36 @@ def _build_reset_email(to_email: str, reset_url: str) -> MIMEMultipart:
     </div>
     """
 
-    msg.attach(MIMEText(text, "plain"))
-    msg.attach(MIMEText(html, "html"))
-    return msg
 
-
-def _send_reset_email_sync(to_email: str, reset_url: str) -> None:
-    """Send the reset email via SMTP (blocking, run in thread)."""
-    logger.info(
-        "[EMAIL DEBUG] Attempting reset email to=%s host=%s port=%s user=%s",
-        to_email, settings.SMTP_HOST, settings.SMTP_PORT, settings.SMTP_USER,
-    )
-    if not settings.SMTP_HOST or not settings.SMTP_USER:
-        logger.warning(
-            "[EMAIL DEBUG] SMTP not configured (host=%s, user=%s). Reset URL for %s: %s",
-            settings.SMTP_HOST, settings.SMTP_USER, to_email, reset_url,
-        )
+async def _send_reset_email(to_email: str, reset_url: str) -> None:
+    """Send the reset email via Resend HTTP API."""
+    logger.info("[EMAIL] Attempting reset email to=%s from=%s", to_email, settings.EMAIL_FROM)
+    if not settings.RESEND_API_KEY:
+        logger.warning("[EMAIL] RESEND_API_KEY not configured. Reset URL for %s: %s", to_email, reset_url)
         return
 
     try:
-        msg = _build_reset_email(to_email, reset_url)
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-            server.set_debuglevel(1)
-            server.starttls()
-            logger.info("[EMAIL DEBUG] STARTTLS OK, logging in as %s", settings.SMTP_USER)
-            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD or "")
-            logger.info("[EMAIL DEBUG] Login OK, sending message to %s", to_email)
-            server.send_message(msg)
-            logger.info("[EMAIL DEBUG] Reset email sent successfully to %s", to_email)
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                RESEND_API_URL,
+                headers={
+                    "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "from": f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM}>",
+                    "to": [to_email],
+                    "subject": "Reset your FreeForm Fitness password",
+                    "html": _build_reset_html(reset_url),
+                },
+                timeout=10.0,
+            )
+        if resp.status_code == 200:
+            logger.info("[EMAIL] Reset email sent successfully to %s (id=%s)", to_email, resp.json().get("id"))
+        else:
+            logger.error("[EMAIL] Resend API error %s: %s", resp.status_code, resp.text)
     except Exception:
-        logger.exception("[EMAIL DEBUG] Failed to send reset email to %s", to_email)
-
-
-async def _send_reset_email(to_email: str, reset_url: str) -> None:
-    loop = asyncio.get_running_loop()
-    await loop.run_in_executor(None, _send_reset_email_sync, to_email, reset_url)
+        logger.exception("[EMAIL] Failed to send reset email to %s", to_email)
 
 
 def _fire_and_forget_reset_email(to_email: str, reset_url: str) -> None:

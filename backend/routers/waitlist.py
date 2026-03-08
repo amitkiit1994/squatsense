@@ -4,10 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,28 +19,15 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/waitlist", tags=["waitlist"])
 
+RESEND_API_URL = "https://api.resend.com/emails"
+
 
 # ---------------------------------------------------------------------------
 # Email helper
 # ---------------------------------------------------------------------------
 
-def _build_welcome_email(to_email: str) -> MIMEMultipart:
-    """Build the HTML thank-you email."""
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = "Welcome to the FreeForm Fitness Waitlist!"
-    msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
-    msg["To"] = to_email
-
-    text = (
-        "Thanks for joining the FreeForm Fitness waitlist!\n\n"
-        "You're now in line for early access to AI-powered movement analysis "
-        "that tracks joint angles, form scores, and fatigue — all from your "
-        "phone camera.\n\n"
-        "We'll email you as soon as we're ready to let you in.\n\n"
-        "— The FreeForm Fitness Team"
-    )
-
-    html = f"""\
+def _build_welcome_html() -> str:
+    return """\
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; color: #e4e4e7; background-color: #18181b; border-radius: 16px;">
       <div style="text-align: center; margin-bottom: 24px;">
         <h1 style="font-size: 24px; font-weight: 700; margin: 0; color: #fb923c;">FreeForm Fitness</h1>
@@ -64,42 +49,39 @@ def _build_welcome_email(to_email: str) -> MIMEMultipart:
     </div>
     """
 
-    msg.attach(MIMEText(text, "plain"))
-    msg.attach(MIMEText(html, "html"))
-    return msg
 
-
-def _send_email_sync(to_email: str) -> None:
-    """Send the welcome email via SMTP (blocking, run in thread)."""
+async def _send_welcome_email(to_email: str) -> None:
+    """Send the welcome email via Resend HTTP API."""
     logger.info(
-        "[EMAIL DEBUG] Attempting welcome email to=%s host=%s port=%s user=%s",
-        to_email, settings.SMTP_HOST, settings.SMTP_PORT, settings.SMTP_USER,
+        "[EMAIL] Attempting welcome email to=%s from=%s",
+        to_email, settings.EMAIL_FROM,
     )
-    if not settings.SMTP_HOST or not settings.SMTP_USER:
-        logger.warning(
-            "[EMAIL DEBUG] SMTP not configured (host=%s, user=%s). Skipping welcome email to %s",
-            settings.SMTP_HOST, settings.SMTP_USER, to_email,
-        )
+    if not settings.RESEND_API_KEY:
+        logger.warning("[EMAIL] RESEND_API_KEY not configured. Skipping welcome email to %s", to_email)
         return
 
     try:
-        msg = _build_welcome_email(to_email)
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-            server.set_debuglevel(1)
-            server.starttls()
-            logger.info("[EMAIL DEBUG] STARTTLS OK, logging in as %s", settings.SMTP_USER)
-            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD or "")
-            logger.info("[EMAIL DEBUG] Login OK, sending message to %s", to_email)
-            server.send_message(msg)
-            logger.info("[EMAIL DEBUG] Welcome email sent successfully to %s", to_email)
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                RESEND_API_URL,
+                headers={
+                    "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "from": f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM}>",
+                    "to": [to_email],
+                    "subject": "Welcome to the FreeForm Fitness Waitlist!",
+                    "html": _build_welcome_html(),
+                },
+                timeout=10.0,
+            )
+        if resp.status_code == 200:
+            logger.info("[EMAIL] Welcome email sent successfully to %s (id=%s)", to_email, resp.json().get("id"))
+        else:
+            logger.error("[EMAIL] Resend API error %s: %s", resp.status_code, resp.text)
     except Exception:
-        logger.exception("[EMAIL DEBUG] Failed to send welcome email to %s", to_email)
-
-
-async def _send_welcome_email(to_email: str) -> None:
-    """Send email in a background thread so the API response isn't blocked."""
-    loop = asyncio.get_running_loop()
-    await loop.run_in_executor(None, _send_email_sync, to_email)
+        logger.exception("[EMAIL] Failed to send welcome email to %s", to_email)
 
 
 def _fire_and_forget_email(to_email: str) -> None:

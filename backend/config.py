@@ -66,13 +66,10 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: Optional[str] = None
     OPENAI_MODEL: str = "gpt-4.1"
 
-    # ── Email (SMTP) ───────────────────────────────────────────────────
-    SMTP_HOST: Optional[str] = None
-    SMTP_PORT: int = 587
-    SMTP_USER: Optional[str] = None
-    SMTP_PASSWORD: Optional[str] = None
-    SMTP_FROM_EMAIL: str = "amit@freeformfitness.ai"
-    SMTP_FROM_NAME: str = "FreeForm Fitness"
+    # ── Email (Resend) ─────────────────────────────────────────────────
+    RESEND_API_KEY: Optional[str] = None
+    EMAIL_FROM: str = "amit@freeformfitness.ai"
+    EMAIL_FROM_NAME: str = "FreeForm Fitness"
 
 
 settings = Settings()

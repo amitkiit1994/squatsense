@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """RefreshToken ORM model."""
 
 import uuid
@@ -36,4 +38,4 @@ class RefreshToken(Base):
     )
 
     # ── Relationships ─────────────────────────────────────────────────────
-    user = relationship("User", back_populates="refresh_tokens")
+    user = relationship("User", back_populates="refresh_tokens", lazy="selectin")

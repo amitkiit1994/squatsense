@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Session and Set ORM models."""
 
 import uuid
@@ -68,7 +70,7 @@ class Session(Base):
     )
 
     # ── Relationships ─────────────────────────────────────────────────────
-    user = relationship("User", back_populates="sessions")
+    user = relationship("User", back_populates="sessions", lazy="selectin")
     sets = relationship(
         "Set",
         back_populates="session",
@@ -124,7 +126,7 @@ class Set(Base):
     )
 
     # ── Relationships ─────────────────────────────────────────────────────
-    session = relationship("Session", back_populates="sets")
+    session = relationship("Session", back_populates="sets", lazy="selectin")
     reps = relationship(
         "Rep",
         back_populates="set_",

@@ -11,8 +11,11 @@ RUN pip install --no-cache-dir -r requirements-backend.txt && \
     pip install --no-cache-dir --force-reinstall --no-deps opencv-python-headless>=4.8.0
 
 COPY backend/ ./backend/
+COPY alembic.ini .
 
 ENV PORT=8000
 EXPOSE ${PORT}
 
-CMD gunicorn backend.main:app -k uvicorn.workers.UvicornWorker -w 2 --bind 0.0.0.0:${PORT} --timeout 120
+# Single worker required: kiosk queue state lives in process memory.
+# Multiple workers would cause queue entries to be invisible across workers.
+CMD alembic upgrade head && gunicorn backend.main:app -k uvicorn.workers.UvicornWorker -w 1 --bind 0.0.0.0:${PORT} --timeout 120

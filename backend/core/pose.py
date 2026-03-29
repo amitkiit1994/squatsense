@@ -1,10 +1,10 @@
+from __future__ import annotations
+
 """
 MediaPipe Pose estimation. Returns keypoints in image coordinates (pixel)
 and 3D world landmarks (meters, hip-centered) when available.
 Uses Pose Landmarker task (MediaPipe 0.10+). CPU-only, suitable for macOS.
 """
-from __future__ import annotations
-
 import os
 import urllib.request
 from typing import Any, Optional, TypedDict

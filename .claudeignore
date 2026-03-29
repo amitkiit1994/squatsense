@@ -1,0 +1,25 @@
+# Large binary files — waste context window
+*.jpeg
+*.jpg
+*.png
+*.gif
+*.ico
+*.pdf
+
+# Build artifacts
+node_modules/
+.next/
+out/
+dist/
+__pycache__/
+*.pyc
+
+# Generated outputs
+outputs/
+uploads/
+
+# Lock files — too large, low signal
+package-lock.json
+
+# Deployment
+.vercel/

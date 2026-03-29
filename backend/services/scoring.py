@@ -1,11 +1,11 @@
+from __future__ import annotations
+
 """Composite form scorer for per-rep analysis.
 
 Produces five sub-scores (depth, stability, symmetry, tempo, ROM) each in
 the range 0-100, then combines them into a single weighted composite score
 using the weights defined in the exercise configuration.
 """
-
-from __future__ import annotations
 
 import logging
 

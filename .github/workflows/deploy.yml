@@ -1,0 +1,105 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements-backend.txt
+      - name: Run tests
+        run: pytest backend/tests/ -v
+        env:
+          JWT_SECRET_KEY: test-secret-key-for-ci
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        working-directory: squatsense-web
+        run: npm ci
+      - name: Type check
+        working-directory: squatsense-web
+        run: npx tsc --noEmit
+      - name: Build
+        working-directory: squatsense-web
+        run: npm run build
+
+  # Claude Code PR review — runs on PRs only, uses -p flag for non-interactive mode
+  # Produces structured findings as a PR comment
+  # To enable: add ANTHROPIC_API_KEY to repository secrets
+  claude-review:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs: [test-backend, test-frontend]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Review PR changes
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          claude -p "Review the changes in this PR. Check for:
+          1. Security issues (missing auth, SQL injection, hardcoded secrets)
+          2. Convention violations per CLAUDE.md (f-strings in loggers, legacy .query(), missing type hints)
+          3. Cross-product contamination (SquatSense referencing FreeForm or vice versa)
+          4. Async correctness (blocking calls in async functions)
+          Report ONLY new issues in changed files. Be concise." \
+          --output-format json > review.json || true
+      - name: Post review comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            try {
+              const review = fs.readFileSync('review.json', 'utf8');
+              if (review.trim()) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: `## Claude Code Review\n\n${review.substring(0, 60000)}`
+                });
+              }
+            } catch (e) {
+              console.log('No review output to post');
+            }
+
+  deploy-backend:
+    needs: [test-backend, test-frontend]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Railway
+        run: echo "TODO - Add railway deploy command"
+        # Example: railway up --service backend
+        # Requires RAILWAY_TOKEN secret
+
+  deploy-frontend:
+    needs: [test-backend, test-frontend]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Vercel
+        run: echo "TODO - Add vercel deploy command"
+        # Example: vercel deploy --prod
+        # Requires VERCEL_TOKEN secret

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Drill completion tracking ORM model."""
 
 import uuid

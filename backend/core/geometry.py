@@ -1,11 +1,11 @@
+from __future__ import annotations
+
 """
 Geometry and biomechanics helper functions for squat analysis.
 
 Provides 2D and 3D point/angle utilities, COM approximation, balance metrics,
 and pose validation. Extracted from src/reps.py and made public.
 """
-from __future__ import annotations
-
 import math
 from typing import Optional
 

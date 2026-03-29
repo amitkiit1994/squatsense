@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tests for the exercise registry and all 8 exercise configs."""
 import pytest
 

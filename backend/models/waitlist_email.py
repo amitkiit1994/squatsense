@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Waitlist email signup model."""
 
 import uuid

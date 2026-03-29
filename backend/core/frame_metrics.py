@@ -1,11 +1,11 @@
+from __future__ import annotations
+
 """Per-frame biomechanics metrics computation.
 
 Extracted from src/reps.py. Uses backend.core.geometry for all angle/pose
 calculations. Produces a metrics dict consumed by the scoring engine and
 rep detector.
 """
-from __future__ import annotations
-
 import math
 from typing import Any, Optional
 

@@ -2,19 +2,29 @@
 from __future__ import annotations
 
 import logging
+import os
 import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from backend.config import settings
 from backend.db.engine import init_db
+
+# ── Sentry ──────────────────────────────────────────────────────────────────
+_sentry_dsn = os.getenv("SENTRY_DSN")
+if _sentry_dsn:
+    try:
+        import sentry_sdk
+        sentry_sdk.init(dsn=_sentry_dsn, traces_sample_rate=0.1)
+        logging.getLogger("squatsense").info("Sentry initialized")
+    except ImportError:
+        logging.getLogger("squatsense").warning("sentry-sdk not installed — skipping Sentry init")
 
 logger = logging.getLogger("squatsense")
 
@@ -29,7 +39,7 @@ logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 
 # ── Rate limiter ─────────────────────────────────────────────────────────
-limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+from backend.rate_limit import limiter  # noqa: E402
 
 
 # ── Request logging middleware ────────────────────────────────────────────
@@ -100,6 +110,8 @@ def create_app() -> FastAPI:
         auth,
         coach,
         exercises,
+        league,
+        league_auth,
         live,
         sessions,
         users,
@@ -116,10 +128,24 @@ def create_app() -> FastAPI:
     app.include_router(analytics.router, prefix=api_prefix)
     app.include_router(coach.router, prefix=api_prefix)
     app.include_router(waitlist.router, prefix=api_prefix)
+    app.include_router(league_auth.router, prefix=api_prefix)
+    app.include_router(league.router, prefix=api_prefix)
 
     @app.get("/api/v1/health")
     async def health():
-        return {"status": "ok"}
+        from sqlalchemy import text
+        from backend.db.engine import AsyncSessionLocal
+
+        try:
+            async with AsyncSessionLocal() as session:
+                await session.execute(text("SELECT 1"))
+            return {"status": "ok", "database": "connected"}
+        except Exception as exc:
+            logger.error("Health check failed: %s", exc)
+            return JSONResponse(
+                status_code=503,
+                content={"status": "degraded", "database": "unreachable"},
+            )
 
     return app
 

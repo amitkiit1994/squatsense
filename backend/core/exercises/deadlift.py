@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from backend.core.exercises.base import ExerciseConfig, ExerciseType
 
 DEADLIFT_CONFIG = ExerciseConfig(

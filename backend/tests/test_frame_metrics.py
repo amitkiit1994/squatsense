@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tests for per-frame biomechanics metrics computation."""
 import pytest
 
@@ -38,7 +40,9 @@ class TestComputeFrameMetrics:
         kp = _make_keypoints()
         result = compute_frame_metrics(kp)
         expected_keys = {
-            "knee_angle_deg", "knee_flexion_deg", "depth_ok",
+            "knee_angle_deg", "knee_flexion_deg",
+            "left_knee_flexion_deg", "right_knee_flexion_deg",
+            "depth_ok",
             "hip_angle_deg", "trunk_angle_deg", "trunk_ok",
             "com_offset_norm", "balance_ok", "form_ok", "pose_confidence",
         }

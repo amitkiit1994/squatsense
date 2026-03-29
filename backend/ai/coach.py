@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Extended AI coaching module with multi-provider LLM support (OpenAI + Anthropic).
 
@@ -6,8 +8,6 @@ Provides structured coaching feedback: cues, corrective drills, and recovery
 suggestions based on session data including composite scores, fatigue markers,
 and per-rep risk analysis.
 """
-from __future__ import annotations
-
 import asyncio
 import json
 import logging

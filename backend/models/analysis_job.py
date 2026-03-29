@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """AnalysisJob ORM model — persists video analysis jobs across restarts."""
 
 import uuid

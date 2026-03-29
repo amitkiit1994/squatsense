@@ -416,7 +416,7 @@ async def end_session(
         await db.delete(session)
         await db.flush()
         return JSONResponse(
-            status_code=200,
+            status_code=status.HTTP_200_OK,
             content={"detail": "Session discarded — no reps recorded.", "discarded": True},
         )
 

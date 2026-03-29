@@ -1,11 +1,11 @@
+from __future__ import annotations
+
 """Load recommendation engine.
 
 Estimates a training max (1RM) from submaximal performance using the
 Epley formula, recommends load adjustments based on form quality and
 fatigue, and generates goal-based programming prescriptions.
 """
-
-from __future__ import annotations
 
 import math
 

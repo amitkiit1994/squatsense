@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """SQLAlchemy declarative base."""
 
 from sqlalchemy.orm import DeclarativeBase

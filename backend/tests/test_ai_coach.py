@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tests for the AI coaching module (static drill lookup only -- no LLM calls)."""
 import pytest
 

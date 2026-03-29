@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Adaptive programming engine.
 
 Generates periodised workout plans that respond to the athlete's
@@ -5,8 +7,6 @@ real-time performance data -- form scores, fatigue indices, and
 historical trends.  The engine implements a simple linear periodisation
 model with automatic deload detection.
 """
-
-from __future__ import annotations
 
 from backend.services.load_recommender import LoadRecommender
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Rep ORM model."""
 
 import uuid
@@ -92,5 +94,5 @@ class Rep(Base):
     )
 
     # ── Relationships ─────────────────────────────────────────────────────
-    set_ = relationship("Set", back_populates="reps")
-    session = relationship("Session", back_populates="reps")
+    set_ = relationship("Set", back_populates="reps", lazy="selectin")
+    session = relationship("Session", back_populates="reps", lazy="selectin")

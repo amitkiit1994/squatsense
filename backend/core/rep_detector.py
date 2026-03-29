@@ -1,11 +1,11 @@
+from __future__ import annotations
+
 """Rep detection: batch (offline) and incremental (live).
 
 Extracted from src/reps.py. Uses backend.core.geometry for pose validation
 and angle computation, backend.core.frame_metrics for per-frame metrics,
 and backend.core.signal for median filtering.
 """
-from __future__ import annotations
-
 import logging
 from typing import Any, Optional
 

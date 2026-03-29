@@ -20,9 +20,17 @@ uploads/
 
 # Frontend / Node
 node_modules/
-frontend/node_modules/
 frontend/.next/
 frontend/out/
+squatsense-web/.next/
+squatsense-web/out/
+
+# Claude Code (personal config — NOT shared)
+.claude/settings.local.json
+CLAUDE.local.md
+
+# Docs, plans, pitch decks (private — not in repo)
+docs/
 
 # IDE / OS
 .DS_Store

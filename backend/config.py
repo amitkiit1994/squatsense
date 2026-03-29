@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Application configuration via pydantic-settings."""
 
 import json
@@ -30,14 +32,18 @@ class Settings(BaseSettings):
     # Comma-separated emails allowed to register. Empty = open registration.
     ALLOWED_EMAILS: str = ""
 
-    # ── Frontend URL (for email links) ────────────────────────────────
+    # ── Frontend URLs (for email links) ───────────────────────────────
     FRONTEND_URL: str = "http://localhost:3000"
+    SQUATSENSE_URL: str = "http://localhost:3001"
 
     # ── CORS ──────────────────────────────────────────────────────────────
     # Override via CORS_ORIGINS env var (JSON array or comma-separated).
     # Default allows only the local dev server.
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
+        "http://localhost:3001",
+        "https://squatsense.ai",
+        "https://www.squatsense.ai",
     ]
 
     @field_validator("CORS_ORIGINS", mode="before")
@@ -70,6 +76,8 @@ class Settings(BaseSettings):
     RESEND_API_KEY: Optional[str] = None
     EMAIL_FROM: str = "amit@freeformfitness.ai"
     EMAIL_FROM_NAME: str = "FreeForm Fitness"
+    SQUATSENSE_EMAIL_FROM: str = "play@squatsense.ai"
+    SQUATSENSE_EMAIL_FROM_NAME: str = "SquatSense"
 
 
 settings = Settings()

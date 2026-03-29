@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tests for the composite scoring engine."""
 import pytest
 
@@ -33,12 +35,12 @@ class TestDepthScore:
         assert result["depth_score"] == 50.0  # neutral
 
     def test_ideal_range_boundaries(self, scorer, squat_config):
-        # At bottom of ideal range
-        metrics = {"primary_angle_deg": 85.0}
+        # At bottom of ideal range (95.0)
+        metrics = {"primary_angle_deg": 95.0}
         result = scorer.score_rep(metrics, squat_config)
         assert result["depth_score"] == 100.0
-        # At top of ideal range
-        metrics = {"primary_angle_deg": 120.0}
+        # At top of ideal range (115.0)
+        metrics = {"primary_angle_deg": 115.0}
         result = scorer.score_rep(metrics, squat_config)
         assert result["depth_score"] == 100.0
 

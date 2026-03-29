@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Fatigue modelling engine.
 
 Quantifies fatigue within a single set (rep-over-rep trends) and across
@@ -5,8 +7,6 @@ sets within a session.  The engine fits a linear regression to four key
 metric time-series and combines the resulting slopes into a single
 *fatigue index* (0-100) with a risk classification.
 """
-
-from __future__ import annotations
 
 import numpy as np
 

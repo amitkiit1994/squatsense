@@ -71,3 +71,62 @@ async def get_current_user(
             detail="User not found",
         )
     return user
+
+
+async def get_league_player_id(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+) -> UUID:
+    """Extract and validate player_id from a league JWT access token."""
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM],
+        )
+        player_id: str | None = payload.get("sub")
+        token_type: str | None = payload.get("type")
+        if player_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token: missing subject",
+            )
+        if token_type != "league":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type for league",
+            )
+        return UUID(player_id)
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )
+
+
+async def get_optional_league_player_id(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+) -> UUID | None:
+    """Extract player_id from league JWT if present, otherwise return None."""
+    if credentials is None:
+        return None
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM],
+        )
+        player_id: str | None = payload.get("sub")
+        token_type: str | None = payload.get("type")
+        if player_id is None or token_type != "league":
+            return None
+        return UUID(player_id)
+    except JWTError:
+        return None

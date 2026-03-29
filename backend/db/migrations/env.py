@@ -13,6 +13,7 @@ from backend.db.base import Base
 from backend.models import (  # noqa: F401
     user, session, rep, refresh_token,
     analysis_job, drill_completion, waitlist_email,
+    league,
 )
 
 config = context.config

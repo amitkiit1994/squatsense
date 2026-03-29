@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r requirements-backend.txt && \
 COPY backend/ ./backend/
 COPY alembic.ini .
 
+ENV PYTHONPATH=/app
 ENV PORT=8000
 EXPOSE ${PORT}
 

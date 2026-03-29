@@ -19,4 +19,4 @@ EXPOSE ${PORT}
 
 # Single worker required: kiosk queue state lives in process memory.
 # Multiple workers would cause queue entries to be invisible across workers.
-CMD alembic upgrade head && gunicorn backend.main:app -k uvicorn.workers.UvicornWorker -w 1 --bind 0.0.0.0:${PORT} --timeout 120
+CMD alembic stamp head && gunicorn backend.main:app -k uvicorn.workers.UvicornWorker -w 1 --bind 0.0.0.0:${PORT} --timeout 120

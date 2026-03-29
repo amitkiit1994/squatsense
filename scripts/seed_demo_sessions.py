@@ -7,13 +7,16 @@ Usage:
     python scripts/seed_demo_sessions.py
 """
 
+import os
 import random
 import uuid
 
 import psycopg2
 
-# Railway prod DB
-DB_URL = "postgresql://postgres:cTZrhjJkNPEdhTnhzzVPKlnxCczPTxJM@mainline.proxy.rlwy.net:53608/railway"
+# Railway prod DB — set DATABASE_URL env var before running
+DB_URL = os.environ.get("DATABASE_URL", "").replace("+asyncpg", "")
+if not DB_URL:
+    raise SystemExit("Set DATABASE_URL environment variable before running this script.")
 USER_ID = "14a661f0-8648-4db1-9d6a-134be55b15ae"
 
 # ---------------------------------------------------------------------------

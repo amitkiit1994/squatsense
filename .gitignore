@@ -38,3 +38,4 @@ docs/
 
 # Deployment
 .vercel
+.env*.local

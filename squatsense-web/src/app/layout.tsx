@@ -4,12 +4,46 @@ import Navbar from "@/components/Navbar";
 import AnalyticsInit from "@/components/AnalyticsInit";
 
 export const metadata: Metadata = {
-  title: "SquatSense — Move More. Move Better.",
-  description: "The 30-second squat game. Play at work. Play at home. Compete everywhere.",
+  metadataBase: new URL("https://squatsense.ai"),
+  title: {
+    default: "SquatSense — Move More. Move Better.",
+    template: "%s | SquatSense",
+  },
+  description:
+    "The 30-second squat game. AI scores your form in real time. Play at work, play at home, compete everywhere.",
+  keywords: [
+    "squat game",
+    "fitness game",
+    "AI fitness",
+    "squat challenge",
+    "movement points",
+    "office fitness",
+    "squat form checker",
+    "real-time pose detection",
+  ],
+  authors: [{ name: "SquatSense" }],
+  creator: "SquatSense",
   openGraph: {
-    title: "SquatSense",
-    description: "The 30-second squat game. Earn Movement Points. Climb the leaderboard.",
+    title: "SquatSense — Move More. Move Better.",
+    description:
+      "The 30-second squat game. AI scores your form in real time. Earn Movement Points. Climb the leaderboard.",
+    url: "https://squatsense.ai",
+    siteName: "SquatSense",
+    locale: "en_US",
     type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "SquatSense — Move More. Move Better.",
+    description:
+      "The 30-second squat game. AI scores your form in real time. Compete everywhere.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  alternates: {
+    canonical: "https://squatsense.ai",
   },
 };
 

@@ -21,6 +21,14 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://postgres:postgres@localhost:5432/squatsense"
     )
 
+    @field_validator("DATABASE_URL", mode="after")
+    @classmethod
+    def _ensure_asyncpg_driver(cls, v: str) -> str:
+        """Railway provides postgresql:// URLs; ensure the asyncpg driver."""
+        if v.startswith("postgresql://"):
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
+
     # ── JWT / Auth ────────────────────────────────────────────────────────
     JWT_SECRET_KEY: str = Field(..., description="Secret key used to sign JWTs")
     JWT_ALGORITHM: str = "HS256"

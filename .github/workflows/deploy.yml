@@ -19,7 +19,7 @@ jobs:
       - name: Run tests
         run: pytest backend/tests/ -v
         env:
-          JWT_SECRET_KEY: test-secret-key-for-ci
+          JWT_SECRET_KEY: test-secret-key-for-ci-minimum-32chars
 
   test-frontend:
     runs-on: ubuntu-latest

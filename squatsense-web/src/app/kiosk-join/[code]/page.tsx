@@ -165,7 +165,7 @@ export default function KioskJoinPage() {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center px-6">
         <div className="text-center max-w-sm mx-auto">
-          <svg className="animate-spin h-16 w-16 mx-auto text-orange-500 mb-6" viewBox="0 0 24 24">
+          <svg className="animate-spin h-16 w-16 mx-auto text-[#00ff88] mb-6" viewBox="0 0 24 24">
             <circle
               cx="12" cy="12" r="10"
               stroke="currentColor" strokeWidth="3"
@@ -189,7 +189,7 @@ export default function KioskJoinPage() {
           <p className="text-zinc-500 text-sm font-semibold tracking-widest uppercase mb-2">
             Your position
           </p>
-          <div className="text-8xl sm:text-9xl font-black text-orange-500 mb-2 tabular-nums">
+          <div className="text-8xl sm:text-9xl font-black text-[#00ff88] mb-2 tabular-nums">
             #{queuePosition}
           </div>
           <p className="text-2xl font-bold text-zinc-200 mb-6">
@@ -199,14 +199,14 @@ export default function KioskJoinPage() {
           {/* Pulsing dot indicator */}
           <div className="flex items-center justify-center gap-2 mb-8">
             <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00ff88] opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-[#00ff88]" />
             </span>
             <span className="text-zinc-400 text-sm font-medium">Waiting for your turn</span>
           </div>
 
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3">
-            <p className="text-orange-400 text-sm font-semibold">
+            <p className="text-[#00ff88] text-sm font-semibold">
               Don&apos;t close this page!
             </p>
             <p className="text-zinc-500 text-xs mt-1">
@@ -225,12 +225,12 @@ export default function KioskJoinPage() {
         <div className="text-center max-w-sm mx-auto">
           {/* Pulsing ring */}
           <div className="relative mx-auto w-24 h-24 mb-8">
-            <span className="absolute inset-0 rounded-full bg-orange-500/20 animate-ping" />
-            <span className="absolute inset-2 rounded-full bg-orange-500/30 animate-ping [animation-delay:150ms]" />
-            <span className="absolute inset-4 rounded-full bg-orange-500/40 animate-pulse" />
+            <span className="absolute inset-0 rounded-full bg-[#00ff88]/20 animate-ping" />
+            <span className="absolute inset-2 rounded-full bg-[#00ff88]/30 animate-ping [animation-delay:150ms]" />
+            <span className="absolute inset-4 rounded-full bg-[#00ff88]/40 animate-pulse" />
             <div className="relative flex items-center justify-center w-full h-full">
               <svg
-                className="w-12 h-12 text-orange-500"
+                className="w-12 h-12 text-[#00ff88]"
                 fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
@@ -238,7 +238,7 @@ export default function KioskJoinPage() {
             </div>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl font-black text-orange-500 animate-pulse mb-4 tracking-wide">
+          <h1 className="text-3xl sm:text-4xl font-black text-[#00ff88] animate-pulse mb-4 tracking-wide">
             YOUR BLITZ IS HAPPENING NOW!
           </h1>
           <p className="text-xl text-zinc-400 font-medium">
@@ -246,7 +246,7 @@ export default function KioskJoinPage() {
           </p>
 
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 mt-8">
-            <p className="text-orange-400 text-sm font-semibold">
+            <p className="text-[#00ff88] text-sm font-semibold">
               Don&apos;t close this page!
             </p>
             <p className="text-zinc-500 text-xs mt-1">
@@ -268,10 +268,10 @@ export default function KioskJoinPage() {
       <div className="min-h-screen bg-black flex items-center justify-center px-4 py-8">
         <div className="w-full max-w-sm mx-auto">
           {/* Results card — screenshot-friendly */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl shadow-orange-500/5">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl shadow-[#00ff88]/5">
             {/* Header */}
             <div className="text-center mb-6">
-              <h1 className="text-2xl sm:text-3xl font-black text-orange-500 tracking-wide mb-1">
+              <h1 className="text-2xl sm:text-3xl font-black text-[#00ff88] tracking-wide mb-1">
                 BLITZ COMPLETE!
               </h1>
               {playerStatus.rank && (
@@ -340,7 +340,7 @@ export default function KioskJoinPage() {
             <Link
               href="/register"
               className="block w-full py-4 rounded-2xl text-lg font-black tracking-wider text-center
-                bg-orange-500 text-black active:scale-95 transition-transform"
+                bg-[#00ff88] text-black active:scale-95 transition-transform"
             >
               CREATE ACCOUNT
             </Link>
@@ -401,7 +401,7 @@ export default function KioskJoinPage() {
     <div className="min-h-screen bg-black flex flex-col px-6 py-8">
       {/* Header */}
       <div className="text-center mb-8">
-        <h1 className="text-2xl sm:text-3xl font-black text-orange-500 tracking-widest">
+        <h1 className="text-2xl sm:text-3xl font-black text-[#00ff88] tracking-widest">
           SQUATSENSE
         </h1>
         <p className="text-lg text-zinc-500 mt-2 font-medium">
@@ -423,8 +423,8 @@ export default function KioskJoinPage() {
                   onClick={() => setNickname(n)}
                   className="px-4 py-2 rounded-full text-sm font-semibold
                     bg-zinc-900 border border-zinc-800 text-zinc-200
-                    hover:border-orange-500/50 hover:text-orange-500
-                    active:bg-orange-500/10 transition-colors"
+                    hover:border-[#00ff88]/50 hover:text-[#00ff88]
+                    active:bg-[#00ff88]/10 transition-colors"
                 >
                   {n}
                 </button>
@@ -446,7 +446,7 @@ export default function KioskJoinPage() {
             className="w-full px-5 py-4 sm:px-6 sm:py-5 text-lg sm:text-xl font-bold text-center
               bg-zinc-900 border-2 border-zinc-800 rounded-2xl
               text-zinc-100 placeholder-zinc-600
-              focus:border-orange-500 focus:outline-none
+              focus:border-[#00ff88] focus:outline-none
               transition-colors"
             autoCapitalize="off"
             autoCorrect="off"
@@ -460,7 +460,7 @@ export default function KioskJoinPage() {
           onClick={handleJoin}
           disabled={!nickname.trim()}
           className="w-full py-4 sm:py-5 rounded-2xl text-2xl sm:text-3xl font-black tracking-widest
-            bg-orange-500 text-black
+            bg-[#00ff88] text-black
             disabled:opacity-30 disabled:cursor-not-allowed
             active:scale-95 transition-all"
         >

@@ -5,7 +5,7 @@ export default function NotFound() {
     <div className="min-h-screen bg-black flex items-center justify-center px-6">
       <div className="text-center max-w-md">
         <div
-          className="text-8xl sm:text-9xl font-black text-orange-500 mb-4"
+          className="text-8xl sm:text-9xl font-black text-[#00ff88] mb-4"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
           404
@@ -29,8 +29,8 @@ export default function NotFound() {
           </Link>
           <Link
             href="/join"
-            className="px-8 py-4 rounded-xl bg-orange-500 text-black font-bold text-lg
-                       hover:bg-orange-400 transition-colors text-center"
+            className="px-8 py-4 rounded-xl bg-[#00ff88] text-black font-bold text-lg
+                       hover:bg-[#00cc6a] transition-colors text-center"
           >
             START PLAYING
           </Link>

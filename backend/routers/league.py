@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.deps import get_db, get_league_player_id, get_optional_league_player_id
@@ -150,7 +150,23 @@ async def get_team_leaderboard(
     if team is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")
 
-    # Build query based on period
+    # Build query based on period — date filter goes in the JOIN clause
+    # so the LEFT JOIN is preserved (players with no sessions show 0 points)
+    today_utc = datetime.now(timezone.utc).date()
+
+    join_condition = LeagueSession.player_id == LeaguePlayer.id
+    if period == "today":
+        join_condition = and_(
+            join_condition,
+            func.date(LeagueSession.created_at) == today_utc,
+        )
+    elif period == "week":
+        week_start = today_utc - timedelta(days=today_utc.weekday())
+        join_condition = and_(
+            join_condition,
+            func.date(LeagueSession.created_at) >= week_start,
+        )
+
     query = (
         select(
             LeaguePlayer.id,
@@ -161,23 +177,9 @@ async def get_team_leaderboard(
                 "total"
             ),
         )
-        .outerjoin(
-            LeagueSession, LeagueSession.player_id == LeaguePlayer.id
-        )
+        .outerjoin(LeagueSession, join_condition)
         .where(LeaguePlayer.team_id == team.id)
     )
-
-    today_utc = datetime.now(timezone.utc).date()
-
-    if period == "today":
-        query = query.where(
-            func.date(LeagueSession.created_at) == today_utc
-        )
-    elif period == "week":
-        week_start = today_utc - timedelta(days=today_utc.weekday())
-        query = query.where(
-            func.date(LeagueSession.created_at) >= week_start
-        )
 
     query = (
         query.group_by(
@@ -734,6 +736,22 @@ async def get_global_leaderboard(
     db: AsyncSession = Depends(get_db),
 ):
     """Global leaderboard across all players."""
+    today_utc = datetime.now(timezone.utc).date()
+
+    # Date filter goes in the JOIN clause so the LEFT JOIN is preserved
+    join_condition = LeagueSession.player_id == LeaguePlayer.id
+    if period == "today":
+        join_condition = and_(
+            join_condition,
+            func.date(LeagueSession.created_at) == today_utc,
+        )
+    elif period == "week":
+        week_start = today_utc - timedelta(days=today_utc.weekday())
+        join_condition = and_(
+            join_condition,
+            func.date(LeagueSession.created_at) >= week_start,
+        )
+
     query = (
         select(
             LeaguePlayer.id,
@@ -742,16 +760,8 @@ async def get_global_leaderboard(
             LeaguePlayer.rank,
             func.coalesce(func.sum(LeagueSession.points_earned), 0).label("total"),
         )
-        .outerjoin(LeagueSession, LeagueSession.player_id == LeaguePlayer.id)
+        .outerjoin(LeagueSession, join_condition)
     )
-
-    today_utc = datetime.now(timezone.utc).date()
-
-    if period == "today":
-        query = query.where(func.date(LeagueSession.created_at) == today_utc)
-    elif period == "week":
-        week_start = today_utc - timedelta(days=today_utc.weekday())
-        query = query.where(func.date(LeagueSession.created_at) >= week_start)
 
     query = (
         query.group_by(

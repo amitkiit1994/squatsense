@@ -536,7 +536,7 @@ export default function PlayPage() {
               </p>
               <button
                 onClick={() => startCamera()}
-                className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-lg
+                className="px-6 py-2.5 bg-[#00ff88] hover:bg-[#00cc6a] text-black font-bold text-sm rounded-lg
                            transition-colors cursor-pointer tracking-wider mt-2"
               >
                 TRY AGAIN
@@ -584,7 +584,7 @@ export default function PlayPage() {
                 setStartError(null);
                 beginBlitz();
               }}
-              className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-lg
+              className="px-6 py-2.5 bg-[#00ff88] hover:bg-[#00cc6a] text-black font-bold text-sm rounded-lg
                          transition-colors cursor-pointer tracking-wider"
             >
               RETRY

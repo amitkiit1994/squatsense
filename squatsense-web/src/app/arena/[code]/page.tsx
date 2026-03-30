@@ -424,7 +424,8 @@ export default function ArenaPage() {
   useEffect(() => {
     if (screen !== "blitz" || blitzPhase !== "calibrating") return;
     camera.startCamera();
-  }, [screen, blitzPhase, camera]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, blitzPhase]);
 
   // ── Start calibration once camera is active ────────────────────────
   useEffect(() => {
@@ -432,7 +433,8 @@ export default function ArenaPage() {
     const video = camera.videoRef.current;
     if (video) startCalibration(video);
     return () => stopCalibration();
-  }, [screen, blitzPhase, camera.isActive, camera.videoRef, startCalibration, stopCalibration]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, blitzPhase, camera.isActive, startCalibration, stopCalibration]);
 
   // ── Draw calibration skeleton overlay ──────────────────────────────
   useEffect(() => {
@@ -476,7 +478,8 @@ export default function ArenaPage() {
       ctx.arc(lm.x * w, lm.y * h, 4, 0, 2 * Math.PI);
       ctx.fill();
     }
-  }, [calibrationLandmarks, blitzPhase, camera.videoRef]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calibrationLandmarks, blitzPhase]);
 
   // ── Auto-start countdown when calibration passes ───────────────────
   useEffect(() => {

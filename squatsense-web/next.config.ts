@@ -7,7 +7,7 @@ const cspHeader = [
   "img-src 'self' data: blob:",
   "font-src 'self' https://fonts.gstatic.com",
   "media-src 'self' blob: mediastream:",
-  "connect-src 'self' ws://localhost:* wss://squatsense.ai wss://www.squatsense.ai *.posthog.com *.sentry.io https://cdn.jsdelivr.net https://storage.googleapis.com",
+  "connect-src 'self' ws://localhost:* wss://api.squatsense.ai wss://squatsense.ai wss://www.squatsense.ai *.posthog.com *.sentry.io https://cdn.jsdelivr.net https://storage.googleapis.com",
   "frame-ancestors 'none'",
 ].join("; ");
 

@@ -23,6 +23,7 @@ import {
 import { useCamera } from "@/hooks/useCamera";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { usePoseCalibration } from "@/hooks/usePoseCalibration";
+import { usePoseDetection } from "@/hooks/usePoseDetection";
 import { getRankProgress, RANK_COLORS } from "@/lib/ranks";
 import type { ReplayFrame } from "@/lib/replayStore";
 import VideoReplay from "@/components/VideoReplay";
@@ -259,6 +260,7 @@ export default function ArenaPage() {
   // ── Hooks ────────────────────────────────────────────────────────────
   const camera = useCamera();
   const ws = useWebSocket();
+  const poseDetection = usePoseDetection();
   const {
     isModelLoading: calibModelLoading,
     modelError: calibModelError,
@@ -553,7 +555,9 @@ export default function ArenaPage() {
       }
     }
 
-    // Camera is already started from calibrating phase -- no need to start again
+    // Reconnect camera stream to the new video element after phase transition
+    // (React destroys the calibrating <video> and creates a new one for active phase)
+    camera.resumeCamera();
 
     // Start recording + frame data collection for replay
     camera.startRecording();
@@ -574,22 +578,42 @@ export default function ArenaPage() {
       }
     }, 1_000);
 
-    // Start frame capture loop (10fps)
-    const captureLoop = async () => {
+    // Start client-side pose detection for instant skeleton + landmarks
+    const video = camera.videoRef.current;
+    if (video) {
+      poseDetection.start(video);
+    }
+
+    // Send client-detected landmarks to server for rep detection (replaces JPEG frames)
+    const landmarkLoop = () => {
       if (remaining <= 0) return;
-      const frame = await camera.captureFrame();
-      if (frame) ws.sendFrame(frame);
-      frameLoopRef.current = window.setTimeout(captureLoop, 100);
+      const lms = poseDetection.landmarksRef.current;
+      const wlms = poseDetection.worldLandmarksRef.current;
+      if (lms && lms.length >= 33) {
+        const w = video?.videoWidth || 640;
+        const h = video?.videoHeight || 480;
+        ws.sendLandmarks({
+          type: "landmarks",
+          landmarks: lms.map((lm) => [lm.x, lm.y, lm.z, lm.visibility ?? 0]),
+          world_landmarks: wlms
+            ? wlms.map((lm) => [lm.x, lm.y, lm.z])
+            : null,
+          width: w,
+          height: h,
+        });
+      }
+      frameLoopRef.current = window.setTimeout(landmarkLoop, 100);
     };
-    captureLoop();
+    landmarkLoop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kioskId, playerToken, camera, ws, stopCalibration]);
+  }, [kioskId, playerToken, camera, ws, stopCalibration, poseDetection]);
 
   // ── End blitz ────────────────────────────────────────────────────────
   const endBlitz = useCallback(async (sid?: string) => {
     setBlitzPhase("ending");
     if (timerRef.current) clearInterval(timerRef.current);
     if (frameLoopRef.current) clearTimeout(frameLoopRef.current);
+    poseDetection.stop();
 
     // Stop WS and wait for summary
     await ws.stopAndWaitForSummary(5_000);
@@ -1261,6 +1285,7 @@ export default function ArenaPage() {
             {/* Camera feed */}
             <video
               ref={camera.videoRef}
+              autoPlay
               className="absolute inset-0 w-full h-full object-cover"
               playsInline
               muted
@@ -1268,9 +1293,16 @@ export default function ArenaPage() {
             />
             <canvas ref={camera.canvasRef} className="hidden" />
 
-            {/* Skeleton overlay — viewBox matches camera's native resolution */}
+            {/* Skeleton overlay — use local landmarks for instant feedback */}
             <SkeletonOverlay
-              landmarks={ws.landmarks}
+              landmarks={
+                poseDetection.landmarks && poseDetection.landmarks.length >= 33
+                  ? poseDetection.landmarks.map((lm) => [
+                      lm.x * (camera.videoRef.current?.videoWidth || 640),
+                      lm.y * (camera.videoRef.current?.videoHeight || 480),
+                    ] as [number, number])
+                  : ws.landmarks
+              }
               width={camera.videoRef.current?.videoWidth || 640}
               height={camera.videoRef.current?.videoHeight || 480}
             />

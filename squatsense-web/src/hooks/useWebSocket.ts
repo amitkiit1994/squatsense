@@ -34,6 +34,7 @@ export interface UseWebSocketReturn {
   connect: (sessionId: string) => void;
   disconnect: () => void;
   sendFrame: (data: Blob | ArrayBuffer) => void;
+  sendLandmarks: (data: Record<string, unknown>) => void;
   sendCommand: (command: string, extra?: Record<string, unknown>) => void;
   stopAndWaitForSummary: (timeoutMs?: number) => Promise<WebSocketSessionSummary | null>;
   markBlitzStart: () => void;
@@ -201,6 +202,10 @@ export function useWebSocket(): UseWebSocketReturn {
     wsRef.current?.sendFrame(data);
   }, []);
 
+  const sendLandmarks = useCallback((data: Record<string, unknown>) => {
+    wsRef.current?.sendLandmarks(data);
+  }, []);
+
   const sendCommand = useCallback((command: string, extra?: Record<string, unknown>) => {
     wsRef.current?.sendCommand(command, extra);
   }, []);
@@ -250,6 +255,6 @@ export function useWebSocket(): UseWebSocketReturn {
   return {
     isConnected, connectionStatus, metrics, repCount, status, phase, formScore, landmarks, sessionSummary,
     movementPoints, currentCombo, maxCombo, perfectReps, countedReps, repMultipliers, repFormScores, lastRepQuality,
-    connect, disconnect, sendFrame, sendCommand, stopAndWaitForSummary, markBlitzStart, getFrameData,
+    connect, disconnect, sendFrame, sendLandmarks, sendCommand, stopAndWaitForSummary, markBlitzStart, getFrameData,
   };
 }

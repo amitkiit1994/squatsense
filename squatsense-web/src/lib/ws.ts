@@ -76,6 +76,12 @@ export class SquatSenseWS {
     }
   }
 
+  sendLandmarks(data: Record<string, unknown>): void {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(data));
+    }
+  }
+
   sendCommand(command: string, extra?: Record<string, unknown>): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify({ command, ...extra }));

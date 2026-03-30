@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCamera } from "@/hooks/useCamera";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { usePoseCalibration } from "@/hooks/usePoseCalibration";
+import { usePoseDetection } from "@/hooks/usePoseDetection";
 import { startSession, completeSession } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import { trackEvent } from "@/lib/analytics";
@@ -57,11 +58,15 @@ export default function PlayPage() {
     connect,
     disconnect,
     sendFrame,
+    sendLandmarks,
     sendCommand,
     stopAndWaitForSummary,
     markBlitzStart,
     getFrameData,
   } = useWebSocket();
+
+  // ── Client-side pose detection (hybrid mode) ─────────────────────────
+  const poseDetection = usePoseDetection();
 
   // ── Game state ────────────────────────────────────────────────────────
   const [phase, setPhase] = useState<GamePhase>("auth");
@@ -259,7 +264,7 @@ export default function PlayPage() {
     return () => clearInterval(iv);
   }, [phase, resumeCamera]);
 
-  // ── 4. Active blitz: timer + frame capture ───────────────────────────
+  // ── 4. Active blitz: timer + client-side pose detection ──────────────
   useEffect(() => {
     if (phase !== "active") return;
 
@@ -273,6 +278,12 @@ export default function PlayPage() {
     startRecording();
     markBlitzStart();
 
+    // Start client-side pose detection on the video element
+    const video = videoRef.current;
+    if (video && !isMockVideo) {
+      poseDetection.start(video);
+    }
+
     // Timer countdown
     timerRef.current = setInterval(() => {
       setTimer((prev) => {
@@ -284,17 +295,40 @@ export default function PlayPage() {
       });
     }, 1000);
 
-    // Frame capture loop
-    captureLoopRef.current = setInterval(async () => {
-      const blob = await captureFrame();
-      if (blob) sendFrame(blob);
-    }, FRAME_INTERVAL_MS);
+    // Landmark sending loop: send client-detected landmarks to server
+    // for rep detection + scoring (replaces JPEG frame capture)
+    if (isMockVideo) {
+      // Mock video mode: fall back to JPEG frames (no local pose detection)
+      captureLoopRef.current = setInterval(async () => {
+        const blob = await captureFrame();
+        if (blob) sendFrame(blob);
+      }, FRAME_INTERVAL_MS);
+    } else {
+      captureLoopRef.current = setInterval(() => {
+        const lms = poseDetection.landmarksRef.current;
+        const wlms = poseDetection.worldLandmarksRef.current;
+        if (!lms || lms.length < 33) return;
+        const w = video?.videoWidth || 640;
+        const h = video?.videoHeight || 480;
+        sendLandmarks({
+          type: "landmarks",
+          landmarks: lms.map((lm) => [lm.x, lm.y, lm.z, lm.visibility ?? 0]),
+          world_landmarks: wlms
+            ? wlms.map((lm) => [lm.x, lm.y, lm.z])
+            : null,
+          width: w,
+          height: h,
+        });
+      }, FRAME_INTERVAL_MS);
+    }
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (captureLoopRef.current) clearInterval(captureLoopRef.current);
+      poseDetection.stop();
     };
-  }, [phase, captureFrame, sendFrame, resumeCamera, playVideo, startRecording, markBlitzStart]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, resumeCamera, playVideo, startRecording, markBlitzStart, isMockVideo]);
 
   // ── 5. Finishing: stop, persist, redirect ────────────────────────────
   useEffect(() => {
@@ -451,6 +485,9 @@ export default function PlayPage() {
   }, [movementPoints]);
 
   // ── Skeleton overlay drawing ─────────────────────────────────────────
+  // Use local landmarks for instant skeleton (no server round-trip),
+  // fall back to server landmarks for mock video mode.
+  const localLandmarks = poseDetection.landmarks;
   useEffect(() => {
     const canvas = overlayCanvasRef.current;
     const video = videoRef.current;
@@ -464,13 +501,25 @@ export default function PlayPage() {
     canvas.width = w;
     canvas.height = h;
 
-    if (landmarks.length === 0 || phase !== "active") {
+    if (phase !== "active") {
       ctx.clearRect(0, 0, w, h);
       return;
     }
 
-    drawSkeleton(ctx, landmarks, formScore, w, h);
-  }, [landmarks, formScore, phase, videoRef]);
+    // Prefer local landmarks (instant); fall back to server landmarks (mock mode)
+    if (localLandmarks && localLandmarks.length >= 33 && !isMockVideo) {
+      // Local landmarks are normalized (0-1) — convert to pixel coords
+      const pixelLandmarks: [number, number][] = localLandmarks.map((lm) => [
+        lm.x * w,
+        lm.y * h,
+      ]);
+      drawSkeleton(ctx, pixelLandmarks, formScore, w, h);
+    } else if (landmarks.length > 0) {
+      drawSkeleton(ctx, landmarks, formScore, w, h);
+    } else {
+      ctx.clearRect(0, 0, w, h);
+    }
+  }, [localLandmarks, landmarks, formScore, phase, videoRef, isMockVideo]);
 
   // ── Quality multiplier display ───────────────────────────────────────
   const latestMultiplier =

@@ -607,46 +607,51 @@ async def live_analysis(
                     await websocket.send_json({"type": "pong"})
                     continue
 
-                # For unknown commands, just continue
-                continue
+                # ── Client-side landmarks (hybrid mode) ──────────────
+                # When the client runs pose detection locally, it sends
+                # normalized landmarks instead of JPEG frames.  This
+                # skips image decode + server-side pose estimation,
+                # reducing round-trip latency from ~300-500ms to ~50ms.
+                # FreeForm continues using the binary JPEG path below.
+                if msg.get("type") == "landmarks":
+                    pass  # handled below after text/binary dispatch
+                else:
+                    # For unknown commands, just continue
+                    continue
 
-            # Handle binary messages (JPEG frames)
-            data = raw.get("bytes")
-            if data is None:
-                continue
-
-            # ── Frame throttling ──────────────────────────────────────
-            # Skip frames that arrive faster than we can process them.
-            # This keeps the event loop free for HTTP requests.
-            now = time.monotonic()
-            if now - last_frame_time < MIN_FRAME_INTERVAL:
-                # Yield to event loop even when skipping frames so HTTP
-                # requests on the same worker get processed.
-                await asyncio.sleep(0)
-                continue
-            last_frame_time = now
-
-            frame = _decode_frame(data)
-            if frame is None:
-                await websocket.send_json({"error": "Could not decode frame"})
-                continue
-
-            # Run pose estimation in thread pool
-            loop = asyncio.get_event_loop()
-            pose_result = await loop.run_in_executor(
-                _POSE_EXECUTOR, _process_frame_sync, frame, pose
-            )
-
-            # Yield to event loop so pending HTTP requests get a chance
-            await asyncio.sleep(0)
-
+            # ── Determine input mode and extract keypoints ───────────
             keypoints = None
             keypoints_3d = None
             landmarks_out: list[list[float]] = []
 
-            if pose_result is not None:
-                keypoints = pose_result["keypoints_2d"]
-                keypoints_3d = pose_result.get("keypoints_3d")
+            if "text" in raw and raw["text"]:
+                # Landmarks mode: client sent pose data directly
+                msg = json.loads(raw["text"])
+                now = time.monotonic()
+                if now - last_frame_time < MIN_FRAME_INTERVAL:
+                    await asyncio.sleep(0)
+                    continue
+                last_frame_time = now
+
+                lm_width = msg.get("width", 640)
+                lm_height = msg.get("height", 480)
+                norm_lms = msg.get("landmarks", [])
+                world_lms = msg.get("world_landmarks")
+
+                if not norm_lms or len(norm_lms) < 33:
+                    await websocket.send_json({"error": "Invalid landmarks"})
+                    continue
+
+                # Convert normalized (0-1) to pixel coords for 2D
+                keypoints = [
+                    (lm[0] * lm_width, lm[1] * lm_height) for lm in norm_lms
+                ]
+                # Convert world landmarks to 3D tuples
+                keypoints_3d = (
+                    [(lm[0], lm[1], lm[2]) for lm in world_lms]
+                    if world_lms and len(world_lms) >= 33
+                    else None
+                )
 
                 # EMA smoothing
                 keypoints = smooth_keypoints_ema(keypoints, prev_kp)
@@ -657,6 +662,48 @@ async def live_analysis(
 
                 landmarks_out = [[round(x, 1), round(y, 1)] for x, y in keypoints]
 
+            else:
+                # ── Binary JPEG frames (server-side pose detection) ──
+                # Used by FreeForm and older SquatSense clients.
+                data = raw.get("bytes")
+                if data is None:
+                    continue
+
+                # Frame throttling
+                now = time.monotonic()
+                if now - last_frame_time < MIN_FRAME_INTERVAL:
+                    await asyncio.sleep(0)
+                    continue
+                last_frame_time = now
+
+                frame = _decode_frame(data)
+                if frame is None:
+                    await websocket.send_json({"error": "Could not decode frame"})
+                    continue
+
+                # Run pose estimation in thread pool
+                loop = asyncio.get_event_loop()
+                pose_result = await loop.run_in_executor(
+                    _POSE_EXECUTOR, _process_frame_sync, frame, pose
+                )
+
+                # Yield to event loop so pending HTTP requests get a chance
+                await asyncio.sleep(0)
+
+                if pose_result is not None:
+                    keypoints = pose_result["keypoints_2d"]
+                    keypoints_3d = pose_result.get("keypoints_3d")
+
+                    # EMA smoothing
+                    keypoints = smooth_keypoints_ema(keypoints, prev_kp)
+                    prev_kp = keypoints
+                    if keypoints_3d is not None:
+                        keypoints_3d = smooth_keypoints_ema_3d(keypoints_3d, prev_kp3)
+                        prev_kp3 = keypoints_3d
+
+                    landmarks_out = [[round(x, 1), round(y, 1)] for x, y in keypoints]
+
+            # ── Shared pipeline: rep detection + scoring + response ──
             # Push to rep detector
             state = detector.push(frame_idx, keypoints, fps, keypoints_3d=keypoints_3d)
             frame_idx += 1

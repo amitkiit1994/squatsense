@@ -84,31 +84,38 @@ export default function DashboardPage() {
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan | null>(null);
   const [formTrend, setFormTrend] = useState<{ direction: "up" | "down" | "flat"; delta: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     const abortController = new AbortController();
 
     async function fetchData() {
       try {
+        const partialErrors: string[] = [];
+
         const [summaryData, volume, trends, plan] = await Promise.all([
           apiFetch<AnalyticsSummary>("/analytics/summary", {
             signal: abortController.signal,
           }),
           apiFetch<VolumeData>("/analytics/volume", {
             signal: abortController.signal,
-          }).catch(() => null),
+          }).catch(() => { partialErrors.push("volume"); return null; }),
           apiFetch<TrendDataSlim>("/analytics/trends?exercise_type=squat", {
             signal: abortController.signal,
-          }).catch(() => null),
+          }).catch(() => { partialErrors.push("trends"); return null; }),
           apiFetch<WeeklyPlan>("/exercises/weekly-plan?days_per_week=3", {
             signal: abortController.signal,
-          }).catch(() => null),
+          }).catch(() => { partialErrors.push("weekly plan"); return null; }),
         ]);
 
         if (abortController.signal.aborted) return;
         setSummary(summaryData);
         setVolumeData(volume);
         setWeeklyPlan(plan);
+
+        if (partialErrors.length > 0) {
+          setFetchError(`Could not load ${partialErrors.join(", ")} data. Some sections may be incomplete.`);
+        }
 
         // Compute form trend direction from last 2 trend data points
         if (trends?.form_trend?.values && trends.form_trend.values.length >= 2) {
@@ -124,6 +131,7 @@ export default function DashboardPage() {
       } catch (error) {
         if (abortController.signal.aborted) return;
         console.error("Failed to fetch analytics summary:", error);
+        setFetchError("Failed to load dashboard data. Please try refreshing the page.");
       } finally {
         if (!abortController.signal.aborted) {
           setLoading(false);
@@ -254,6 +262,14 @@ export default function DashboardPage() {
           Here&apos;s your training overview
         </p>
       </div>
+
+      {/* Error Banner */}
+      {fetchError && (
+        <div className="flex items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-400" />
+          <p className="text-sm text-amber-200">{fetchError}</p>
+        </div>
+      )}
 
       {/* Start Workout CTA */}
       <Button

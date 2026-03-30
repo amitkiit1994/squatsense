@@ -59,10 +59,16 @@ _player_results: dict[str, dict] = {}      # player_id_str -> results for pollin
 
 _QUEUE_ENTRY_TTL = 300  # 5 minutes
 _RESULT_TTL = 300       # 5 minutes
+_REGISTRY_MAX_SIZE = 100  # max kiosks before eviction
+_REGISTRY_TTL = 86400     # 24 hours
+_kiosk_last_seen: dict[str, float] = {}  # kiosk_id -> last access timestamp
 
 
 def _clean_stale_entries(kiosk_id: str) -> None:
-    """Remove queue entries older than TTL."""
+    """Remove queue entries older than TTL and evict stale kiosks."""
+    # Update last-seen for the accessed kiosk
+    _kiosk_last_seen[kiosk_id] = time.time()
+
     if kiosk_id not in _kiosk_queue:
         return
     now = time.time()
@@ -78,6 +84,18 @@ def _clean_stale_entries(kiosk_id: str) -> None:
     for k in stale_keys:
         del _player_results[k]
 
+    # Evict kiosks not seen in 24 hours or when registry exceeds max size
+    if len(_kiosk_registry) > _REGISTRY_MAX_SIZE:
+        stale_kiosks = [
+            k for k, ts in _kiosk_last_seen.items()
+            if now - ts >= _REGISTRY_TTL
+        ]
+        for k in stale_kiosks:
+            _kiosk_registry.pop(k, None)
+            _kiosk_queue.pop(k, None)
+            _kiosk_active.pop(k, None)
+            _kiosk_last_seen.pop(k, None)
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TEAMS
@@ -89,9 +107,10 @@ def _clean_stale_entries(kiosk_id: str) -> None:
 async def create_team(
     request: Request,
     body: CreateTeamRequest,
+    player_id: UUID = Depends(get_league_player_id),
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a new team/office."""
+    """Create a new team/office (requires league auth)."""
     code = secrets.token_hex(3).upper()  # 6-char hex like "A3F1B2"
 
     team = LeagueTeam(name=body.name, code=code)
@@ -315,8 +334,8 @@ async def complete_session(
     # Calculate points
     result = calculate_session_points(body.rep_scores)
 
-    # Check daily cap for reps
-    daily_log = await get_or_create_daily_log(db, player_id)
+    # Check daily cap for reps (row-level lock prevents concurrent bypass)
+    daily_log = await get_or_create_daily_log(db, player_id, for_update=True)
     reps_remaining = max(0, 50 - daily_log.reps_today)
     capped = result["reps_counted"] > reps_remaining
     if capped:

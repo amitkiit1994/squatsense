@@ -85,26 +85,37 @@ export function usePoseDetection(): UsePoseDetectionReturn {
 
       (async () => {
         try {
+          const MODEL_LOAD_TIMEOUT_MS = 30_000;
+
           const vision = await import("@mediapipe/tasks-vision");
           const { PoseLandmarker, FilesetResolver } = vision;
 
-          const fileset = await FilesetResolver.forVisionTasks(WASM_CDN);
+          const loadModel = async () => {
+            const fileset = await FilesetResolver.forVisionTasks(WASM_CDN);
 
-          // Try GPU first, fall back to CPU
-          let landmarker;
-          try {
-            landmarker = await PoseLandmarker.createFromOptions(fileset, {
-              baseOptions: { modelAssetPath: MODEL_URL, delegate: "GPU" },
-              runningMode: "VIDEO",
-              numPoses: 1,
-            });
-          } catch {
-            landmarker = await PoseLandmarker.createFromOptions(fileset, {
-              baseOptions: { modelAssetPath: MODEL_URL, delegate: "CPU" },
-              runningMode: "VIDEO",
-              numPoses: 1,
-            });
-          }
+            // Try GPU first, fall back to CPU
+            try {
+              return await PoseLandmarker.createFromOptions(fileset, {
+                baseOptions: { modelAssetPath: MODEL_URL, delegate: "GPU" },
+                runningMode: "VIDEO",
+                numPoses: 1,
+              });
+            } catch {
+              return await PoseLandmarker.createFromOptions(fileset, {
+                baseOptions: { modelAssetPath: MODEL_URL, delegate: "CPU" },
+                runningMode: "VIDEO",
+                numPoses: 1,
+              });
+            }
+          };
+
+          const timeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(
+              "Pose model took too long to load. Check your internet connection and try again."
+            )), MODEL_LOAD_TIMEOUT_MS)
+          );
+
+          const landmarker = await Promise.race([loadModel(), timeout]);
 
           landmarkerRef.current = landmarker;
           setIsModelLoading(false);

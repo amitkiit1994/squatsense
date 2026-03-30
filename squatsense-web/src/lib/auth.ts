@@ -1,5 +1,19 @@
-const TOKEN_KEY = "squatsense_token";
-const PLAYER_KEY = "squatsense_player";
+const TOKEN_KEY = "squatsense_token_v1";
+const PLAYER_KEY = "squatsense_player_v1";
+
+// Migrate from old key names (one-time, runs on first import)
+if (typeof window !== "undefined") {
+  const oldToken = localStorage.getItem("squatsense_token");
+  const oldPlayer = localStorage.getItem("squatsense_player");
+  if (oldToken && !localStorage.getItem(TOKEN_KEY)) {
+    localStorage.setItem(TOKEN_KEY, oldToken);
+  }
+  if (oldPlayer && !localStorage.getItem(PLAYER_KEY)) {
+    localStorage.setItem(PLAYER_KEY, oldPlayer);
+  }
+  if (oldToken) localStorage.removeItem("squatsense_token");
+  if (oldPlayer) localStorage.removeItem("squatsense_player");
+}
 
 export interface StoredPlayer {
   player_id: string;

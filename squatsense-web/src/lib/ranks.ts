@@ -45,7 +45,16 @@ export function getRankProgress(totalPoints: number): RankProgress {
 }
 
 // Personal best tracking
-const PB_KEY = "squatsense_pb";
+const PB_KEY = "squatsense_pb_v1";
+
+// Migrate from old key name
+if (typeof window !== "undefined") {
+  const oldPb = localStorage.getItem("squatsense_pb");
+  if (oldPb && !localStorage.getItem(PB_KEY)) {
+    localStorage.setItem(PB_KEY, oldPb);
+  }
+  if (oldPb) localStorage.removeItem("squatsense_pb");
+}
 
 export function getPersonalBest(): number {
   if (typeof window === "undefined") return 0;

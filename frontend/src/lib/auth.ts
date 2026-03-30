@@ -6,8 +6,23 @@
  * so that both the API client and React hooks can access them.
  */
 
-const ACCESS_TOKEN_KEY = "squatsense_access_token";
-const REFRESH_TOKEN_KEY = "squatsense_refresh_token";
+const ACCESS_TOKEN_KEY = "freeform_access_token";
+const REFRESH_TOKEN_KEY = "freeform_refresh_token";
+
+// Migrate tokens from old key names (one-time, runs on first import)
+if (typeof window !== "undefined") {
+  const oldAccess = localStorage.getItem("squatsense_access_token");
+  const oldRefresh = localStorage.getItem("squatsense_refresh_token");
+  if (oldAccess && !localStorage.getItem(ACCESS_TOKEN_KEY)) {
+    localStorage.setItem(ACCESS_TOKEN_KEY, oldAccess);
+  }
+  if (oldRefresh && !localStorage.getItem(REFRESH_TOKEN_KEY)) {
+    localStorage.setItem(REFRESH_TOKEN_KEY, oldRefresh);
+  }
+  // Clean up old keys after migration
+  if (oldAccess) localStorage.removeItem("squatsense_access_token");
+  if (oldRefresh) localStorage.removeItem("squatsense_refresh_token");
+}
 
 /**
  * Return the current access token, or `null` if none is stored.

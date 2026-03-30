@@ -39,7 +39,7 @@ async def test_register(client: AsyncClient) -> None:
         json={
             "nickname": "RegPlayer",
             "email": "reg@example.com",
-            "password": "securepass123",
+            "password": "SecurePass123",
         },
     )
     assert resp.status_code == 200
@@ -57,7 +57,7 @@ async def test_login(client: AsyncClient) -> None:
         json={
             "nickname": "LoginTest",
             "email": "login@example.com",
-            "password": "securepass123",
+            "password": "SecurePass123",
         },
     )
 
@@ -66,7 +66,7 @@ async def test_login(client: AsyncClient) -> None:
         "/api/v1/league/login",
         json={
             "email": "login@example.com",
-            "password": "securepass123",
+            "password": "SecurePass123",
         },
     )
     assert resp.status_code == 200
@@ -82,7 +82,7 @@ async def test_login_wrong_password(client: AsyncClient) -> None:
         json={
             "nickname": "WrongPwd",
             "email": "wrongpwd@example.com",
-            "password": "correctpassword1",
+            "password": "CorrectPass1",
         },
     )
 
@@ -90,7 +90,7 @@ async def test_login_wrong_password(client: AsyncClient) -> None:
         "/api/v1/league/login",
         json={
             "email": "wrongpwd@example.com",
-            "password": "wrongpassword99",
+            "password": "WrongPass99",
         },
     )
     assert resp.status_code == 401

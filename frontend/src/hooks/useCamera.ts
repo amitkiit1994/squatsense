@@ -46,6 +46,7 @@ export function useCamera(): UseCameraReturn {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const blobUrlRef = useRef<string | null>(null);
 
   const [isActive, setIsActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -236,7 +237,12 @@ export function useCamera(): UseCameraReturn {
       // Clear camera srcObject so the file src takes effect
       video.srcObject = null;
 
+      // Revoke any previous blob URL to prevent memory leaks
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+      }
       const url = URL.createObjectURL(file);
+      blobUrlRef.current = url;
       video.src = url;
       video.loop = options?.loop ?? false;
       video.muted = true;
@@ -248,12 +254,19 @@ export function useCamera(): UseCameraReturn {
       };
 
       video.onended = () => {
+        if (blobUrlRef.current) {
+          URL.revokeObjectURL(blobUrlRef.current);
+          blobUrlRef.current = null;
+        }
         options?.onEnded?.();
       };
 
       video.onerror = () => {
         setError("Failed to load video file.");
-        URL.revokeObjectURL(url);
+        if (blobUrlRef.current) {
+          URL.revokeObjectURL(blobUrlRef.current);
+          blobUrlRef.current = null;
+        }
       };
     },
     [],

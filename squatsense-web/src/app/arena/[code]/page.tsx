@@ -720,7 +720,7 @@ export default function ArenaPage() {
     }
 
     setScreen("results");
-  }, [sessionId, playerToken, playerId, kioskId, ws, camera]);
+  }, [sessionId, playerToken, playerId, kioskId, ws, camera, poseDetection]);
 
   // ── Results: animated count-up + auto-return with countdown (c, d) ──
   useEffect(() => {

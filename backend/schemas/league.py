@@ -5,7 +5,8 @@ from __future__ import annotations
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+from backend.schemas.auth import _validate_password_strength
 
 
 # ── Auth Schemas ─────────────────────────────────────────────────────────────
@@ -26,6 +27,11 @@ class LeagueRegisterRequest(BaseModel):
     password: str = Field(..., min_length=8, max_length=128, description="Account password")
     team_code: str | None = Field(None, description="Optional team code to join")
 
+    @field_validator("password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        return _validate_password_strength(v)
+
 
 class LeagueLoginRequest(BaseModel):
     """Login with email + password."""
@@ -39,6 +45,11 @@ class LeagueUpgradeRequest(BaseModel):
 
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=128)
+
+    @field_validator("password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        return _validate_password_strength(v)
 
 
 class LeagueTokenResponse(BaseModel):
@@ -57,7 +68,17 @@ class LeagueTokenResponse(BaseModel):
 class CreateTeamRequest(BaseModel):
     """Create a new team/office."""
 
-    name: str = Field(..., min_length=2, max_length=100)
+    name: str = Field(..., min_length=2, max_length=50)
+
+    @field_validator("name")
+    @classmethod
+    def name_is_clean(cls, v: str) -> str:
+        from backend.services.profanity import is_nickname_clean
+
+        if not is_nickname_clean(v):
+            msg = "That team name is not allowed. Please choose another."
+            raise ValueError(msg)
+        return v
 
 
 class TeamResponse(BaseModel):
@@ -96,6 +117,15 @@ class CompleteSessionRequest(BaseModel):
         ..., description="Per-rep composite scores (0-100)"
     )
     duration_sec: int = Field(default=30)
+
+    @field_validator("rep_scores")
+    @classmethod
+    def scores_in_range(cls, v: list[float]) -> list[float]:
+        for i, score in enumerate(v):
+            if score < 0 or score > 100:
+                msg = f"Rep score at index {i} is {score}, must be 0-100"
+                raise ValueError(msg)
+        return v
 
 
 class CompleteSessionResponse(BaseModel):
@@ -224,6 +254,11 @@ class LeagueResetPasswordRequest(BaseModel):
 
     token: str = Field(..., description="Password reset token from email")
     new_password: str = Field(..., min_length=8, max_length=128, description="New password")
+
+    @field_validator("new_password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        return _validate_password_strength(v)
 
 
 class LeagueVerifyEmailRequest(BaseModel):

@@ -294,9 +294,6 @@ async def upgrade_account(
 
 # ── Password Reset ──────────────────────────────────────────────────────────
 
-RESEND_API_URL = "https://api.resend.com/emails"
-
-
 def _password_fingerprint(password_hash: str) -> str:
     """Derive a non-reversible fingerprint from the password hash for token invalidation."""
     return hashlib.sha256(password_hash.encode()).hexdigest()[:16]
@@ -393,7 +390,7 @@ async def _send_email(to_email: str, subject: str, html: str) -> None:
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(
-                RESEND_API_URL,
+                settings.RESEND_API_URL,
                 headers={
                     "Authorization": f"Bearer {settings.RESEND_API_KEY}",
                     "Content-Type": "application/json",

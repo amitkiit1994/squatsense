@@ -32,6 +32,16 @@ class Settings(BaseSettings):
     # ── JWT / Auth ────────────────────────────────────────────────────────
     JWT_SECRET_KEY: str = Field(..., description="Secret key used to sign JWTs")
     JWT_ALGORITHM: str = "HS256"
+
+    @field_validator("JWT_SECRET_KEY", mode="after")
+    @classmethod
+    def _check_jwt_secret_length(cls, v: str) -> str:
+        if len(v) < 32:
+            raise ValueError(
+                "JWT_SECRET_KEY must be at least 32 characters for HS256 security"
+            )
+        return v
+
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     PASSWORD_RESET_EXPIRE_MINUTES: int = 15
@@ -81,6 +91,7 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4.1"
 
     # ── Email (Resend) ─────────────────────────────────────────────────
+    RESEND_API_URL: str = "https://api.resend.com/emails"
     RESEND_API_KEY: Optional[str] = None
     EMAIL_FROM: str = "amit@freeformfitness.ai"
     EMAIL_FROM_NAME: str = "FreeForm Fitness"

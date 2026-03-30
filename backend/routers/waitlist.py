@@ -19,8 +19,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/waitlist", tags=["waitlist"])
 
-RESEND_API_URL = "https://api.resend.com/emails"
-
 
 # ---------------------------------------------------------------------------
 # Email helper
@@ -63,7 +61,7 @@ async def _send_welcome_email(to_email: str) -> None:
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(
-                RESEND_API_URL,
+                settings.RESEND_API_URL,
                 headers={
                     "Authorization": f"Bearer {settings.RESEND_API_KEY}",
                     "Content-Type": "application/json",

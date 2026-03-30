@@ -44,10 +44,17 @@ async def get_current_user_id(
             algorithms=[settings.JWT_ALGORITHM],
         )
         user_id: str | None = payload.get("sub")
+        token_type: str | None = payload.get("type")
         if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token: missing subject",
+            )
+        # Reject league tokens — they must not authenticate as FreeForm users
+        if token_type == "league":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type",
             )
         return UUID(user_id)
     except JWTError:

@@ -8,12 +8,27 @@ and duplicate-in-queue rejection.
 
 from httpx import AsyncClient
 
+from backend.routers.league_auth import _create_league_token
 
-async def _create_team(client: AsyncClient, name: str = "TestTeam") -> str:
-    """Helper: create a team and return its code."""
+
+async def _create_team(client: AsyncClient, name: str = "TestTeam", *, token: str | None = None) -> str:
+    """Helper: create a team and return its code.
+
+    If no token is provided, first creates a player via anonymous join
+    to get a league auth token.
+    """
+    if token is None:
+        join_resp = await client.post(
+            "/api/v1/league/join",
+            json={"nickname": f"TeamCreator_{name}"},
+        )
+        assert join_resp.status_code == 200, join_resp.text
+        token = join_resp.json()["access_token"]
+
     resp = await client.post(
         "/api/v1/league/teams",
         json={"name": name},
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert resp.status_code == 200, resp.text
     return resp.json()["code"]

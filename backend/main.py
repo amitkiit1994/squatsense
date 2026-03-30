@@ -78,6 +78,16 @@ async def lifespan(app: FastAPI):
     yield
     logger.info("Shutting down FreeForm Fitness backend")
 
+    # Wait for in-flight analysis threads to finish (up to 10s)
+    from backend.routers.analysis import _active_threads, _active_threads_lock
+    with _active_threads_lock:
+        threads = list(_active_threads)
+    if threads:
+        logger.info("Waiting for %d analysis thread(s) to finish...", len(threads))
+        for t in threads:
+            t.join(timeout=10)
+        logger.info("Analysis threads finished")
+
 
 def create_app() -> FastAPI:
     app = FastAPI(

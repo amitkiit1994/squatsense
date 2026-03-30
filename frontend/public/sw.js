@@ -6,7 +6,7 @@
  * strategy for static assets.
  */
 
-const CACHE_NAME = "squatsense-v1";
+const CACHE_NAME = "freeform-v1";
 const STATIC_ASSETS = ["/", "/dashboard", "/workout", "/analytics", "/coach"];
 
 // Install: pre-cache core shell

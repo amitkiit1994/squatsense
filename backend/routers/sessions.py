@@ -416,8 +416,8 @@ async def end_session(
         await db.delete(session)
         await db.flush()
         return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={"detail": "Session discarded — no reps recorded.", "discarded": True},
+            status_code=status.HTTP_204_NO_CONTENT,
+            content=None,
         )
 
     if avg_form_score is not None:

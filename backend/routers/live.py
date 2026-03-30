@@ -58,10 +58,11 @@ async def _save_reps_to_set(
 
     async with AsyncSessionLocal() as db:
         # Try to find the set already created by the frontend API.
-        # Retry once after a short delay in case the REST commit hasn't
+        # Retry with exponential backoff in case the REST commit hasn't
         # been flushed to disk yet (race between HTTP and WebSocket).
         existing_set = None
-        for _attempt in range(2):
+        _retry_delays = [0.1, 0.2, 0.5]  # 100ms, 200ms, 500ms
+        for _attempt in range(len(_retry_delays) + 1):
             result = await db.execute(
                 select(Set).where(
                     Set.session_id == session_id,
@@ -71,12 +72,13 @@ async def _save_reps_to_set(
             existing_set = result.scalars().first()
             if existing_set is not None:
                 break
-            if _attempt == 0:
+            if _attempt < len(_retry_delays):
                 logger.info(
-                    "_save_reps_to_set: Set %d not found yet, retrying after 200ms",
-                    set_number,
+                    "_save_reps_to_set: Set %d not found yet, retrying after %dms (attempt %d/%d)",
+                    set_number, int(_retry_delays[_attempt] * 1000),
+                    _attempt + 1, len(_retry_delays),
                 )
-                await _asyncio.sleep(0.2)
+                await _asyncio.sleep(_retry_delays[_attempt])
 
         if existing_set is not None:
             existing_set.actual_reps = len(scored_reps)
@@ -839,6 +841,7 @@ async def live_analysis(
                 },
                 "status": state.get("status", "Tracking"),
                 "phase": state.get("phase", "TOP_READY"),
+                "server_fps": round(fps, 1),
             }
             # Log frame metrics every 30 frames to avoid spam
             if frame_idx % 30 == 0:

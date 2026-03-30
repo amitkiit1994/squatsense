@@ -92,16 +92,21 @@ def calculate_session_points(
 
 
 async def get_or_create_daily_log(
-    db: AsyncSession, player_id, today: date | None = None
+    db: AsyncSession, player_id, today: date | None = None, *, for_update: bool = False
 ) -> DailyLog:
-    """Get or create the DailyLog for a player on a given date."""
+    """Get or create the DailyLog for a player on a given date.
+
+    Pass for_update=True to acquire a row-level lock (PostgreSQL) to prevent
+    concurrent cap bypass.
+    """
     today = today or datetime.now(timezone.utc).date()
-    result = await db.execute(
-        select(DailyLog).where(
-            DailyLog.player_id == player_id,
-            DailyLog.date == today,
-        )
+    stmt = select(DailyLog).where(
+        DailyLog.player_id == player_id,
+        DailyLog.date == today,
     )
+    if for_update:
+        stmt = stmt.with_for_update()
+    result = await db.execute(stmt)
     log = result.scalar_one_or_none()
     if log is None:
         log = DailyLog(player_id=player_id, date=today)

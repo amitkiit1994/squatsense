@@ -11,13 +11,14 @@ from uuid import UUID
 
 import bcrypt
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from jose import JWTError, jwt
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import settings
 from backend.deps import get_db
+from backend.rate_limit import limiter
 from backend.models.refresh_token import RefreshToken
 from backend.models.user import User
 from backend.schemas.auth import (
@@ -101,7 +102,9 @@ async def _issue_tokens(
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user account",
 )
+@limiter.limit("5/minute")
 async def register(
+    request: Request,
     body: RegisterRequest,
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
@@ -246,9 +249,6 @@ def _create_password_reset_token(user_id: UUID, password_hash: str) -> str:
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
-RESEND_API_URL = "https://api.resend.com/emails"
-
-
 def _build_reset_html(reset_url: str) -> str:
     """Build the password reset email HTML."""
     return f"""\
@@ -287,7 +287,7 @@ async def _send_reset_email(to_email: str, reset_url: str) -> None:
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(
-                RESEND_API_URL,
+                settings.RESEND_API_URL,
                 headers={
                     "Authorization": f"Bearer {settings.RESEND_API_KEY}",
                     "Content-Type": "application/json",
@@ -308,15 +308,19 @@ async def _send_reset_email(to_email: str, reset_url: str) -> None:
         logger.exception("[EMAIL] Failed to send reset email to %s", to_email)
 
 
+_background_tasks: set[asyncio.Task] = set()  # prevent GC of fire-and-forget tasks
+
+
 def _fire_and_forget_reset_email(to_email: str, reset_url: str) -> None:
     task = asyncio.create_task(_send_reset_email(to_email, reset_url))
-    task.add_done_callback(
-        lambda t: logger.exception(
-            "Reset email task failed", exc_info=t.exception()
-        )
-        if t.exception()
-        else None
-    )
+    _background_tasks.add(task)
+
+    def _on_done(t: asyncio.Task) -> None:
+        _background_tasks.discard(t)
+        if t.exception():
+            logger.exception("Reset email task failed", exc_info=t.exception())
+
+    task.add_done_callback(_on_done)
 
 
 @router.post(

@@ -30,6 +30,11 @@ export class SquatSenseWS {
   }
 
   private _connect(url: string): void {
+    // Clear any pending reconnect timer to prevent duplicate connections
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     this.ws = new WebSocket(url);
     this.ws.binaryType = "arraybuffer";
 

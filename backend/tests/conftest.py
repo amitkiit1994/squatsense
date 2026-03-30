@@ -29,7 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 # ---------------------------------------------------------------------------
 # 1.  Environment variables required *before* any application code is imported
 # ---------------------------------------------------------------------------
-os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-for-jwt-signing")
+os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-for-jwt-signing-min32")
 # Do NOT override DATABASE_URL here — let the production engine module use
 # its default Postgres URL.  We never actually connect through it.
 

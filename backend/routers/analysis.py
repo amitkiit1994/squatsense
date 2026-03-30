@@ -14,7 +14,7 @@ from typing import Any
 
 import cv2
 import numpy as np
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,9 +22,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.core.pose import create_pose_detector, process_frame
 from backend.db.engine import AsyncSessionLocal
 from backend.models.analysis_job import AnalysisJob
-from backend.services.scoring import CompositeScorer
-from backend.services.fatigue import FatigueEngine
+from backend.rate_limit import limiter
 from backend.services.exercise_registry import get_exercise_by_name
+from backend.services.fatigue import FatigueEngine
+from backend.services.scoring import CompositeScorer
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,11 @@ router = APIRouter(prefix="/analysis", tags=["analysis"])
 _JOB_CACHE: dict[str, dict[str, Any]] = {}
 _CACHE_LOCK = threading.Lock()
 _MAX_CACHE = 200
+_CACHE_TTL = 3600  # 1 hour
+
+# Track active analysis threads for graceful shutdown
+_active_threads: set[threading.Thread] = set()
+_active_threads_lock = threading.Lock()
 
 # Max upload size: 100 MB
 _MAX_UPLOAD_BYTES = 100 * 1024 * 1024
@@ -240,7 +246,9 @@ def _run_analysis(job_id: str, video_path: str, exercise_type: str) -> None:
     status_code=status.HTTP_202_ACCEPTED,
     summary="Upload a video for async analysis",
 )
+@limiter.limit("5/minute")
 async def upload_video(
+    request: Request,
     file: UploadFile = File(..., description="Video file to analyse"),
     exercise_type: str = Form(default="squat", description="Exercise type"),
 ) -> JSONResponse:
@@ -319,7 +327,13 @@ async def upload_video(
 
     # Write-through to in-memory cache
     with _CACHE_LOCK:
-        # Evict oldest cached entry if at capacity
+        # Evict stale entries first
+        now = time.time()
+        stale_keys = [k for k, v in _JOB_CACHE.items() if now - v.get("created", 0) > _CACHE_TTL]
+        for k in stale_keys:
+            del _JOB_CACHE[k]
+
+        # Evict oldest cached entry if still at capacity
         if len(_JOB_CACHE) >= _MAX_CACHE:
             oldest_key = min(_JOB_CACHE, key=lambda k: _JOB_CACHE[k].get("created", 0))
             del _JOB_CACHE[oldest_key]
@@ -331,12 +345,21 @@ async def upload_video(
             "created": time.time(),
         }
 
-    # Start background thread
+    # Start background thread (tracked for graceful shutdown)
+    def _tracked_analysis(jid: str, vpath: str, etype: str) -> None:
+        try:
+            _run_analysis(jid, vpath, etype)
+        finally:
+            with _active_threads_lock:
+                _active_threads.discard(threading.current_thread())
+
     thread = threading.Thread(
-        target=_run_analysis,
+        target=_tracked_analysis,
         args=(job_id, tmp.name, exercise_type),
         daemon=True,
     )
+    with _active_threads_lock:
+        _active_threads.add(thread)
     thread.start()
 
     return JSONResponse(
@@ -358,6 +381,10 @@ async def get_job_status(job_id: str) -> JSONResponse:
     # Check in-memory cache first (fast path for active jobs)
     with _CACHE_LOCK:
         cached = _JOB_CACHE.get(job_id)
+        # Evict stale entries on read
+        if cached is not None and time.time() - cached.get("created", 0) > _CACHE_TTL:
+            del _JOB_CACHE[job_id]
+            cached = None
 
     if cached is not None:
         return _build_job_response(job_id, cached["status"], cached.get("result"), cached.get("error"))

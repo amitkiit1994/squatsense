@@ -234,7 +234,10 @@ const EXERCISE_OPTIONS = [
 function WorkoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const defaultExercise = searchParams.get("exercise") ?? "squat";
+  const exerciseParam = searchParams.get("exercise") ?? "squat";
+  const defaultExercise = EXERCISE_OPTIONS.some((o) => o.value === exerciseParam)
+    ? exerciseParam
+    : "squat";
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Pre-workout setup state
@@ -288,6 +291,9 @@ function WorkoutContent() {
   const [restTimerActive, setRestTimerActive] = useState(false);
   const [restComplete, setRestComplete] = useState(false);
   const REST_DURATION = 90; // seconds (strength default)
+
+  // Session creation error state
+  const [sessionError, setSessionError] = useState<string | null>(null);
 
   // Skeleton overlay canvas ref
   const skeletonCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -443,9 +449,8 @@ function WorkoutContent() {
         }
       } catch (err) {
         console.error("Failed to create session:", err);
-        // Still connect WS without session tracking
         if (!cancelled) {
-          wsConnect(exerciseType, null);
+          setSessionError("Failed to start session. Your workout data won't be saved. Please go back and try again.");
         }
       }
     }
@@ -1118,6 +1123,28 @@ function WorkoutContent() {
                   </div>
                 );
               })()}
+            </div>
+          </div>
+        )}
+
+        {/* Session creation error */}
+        {sessionError && (
+          <div className="absolute top-14 left-0 right-0 z-20 flex justify-center px-3">
+            <div className="rounded-lg bg-red-900/90 border border-red-500/50 px-4 py-3 backdrop-blur-sm max-w-sm">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-red-200">{sessionError}</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 text-red-300 hover:text-white"
+                    onClick={() => router.back()}
+                  >
+                    Go Back
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         )}

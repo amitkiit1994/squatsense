@@ -359,7 +359,17 @@ export default function ArenaPage() {
           setPlayerId(data.player_id ?? null);
           setScreen("blitz");
         }
-      }).catch(console.error);
+      }).catch((err) => {
+        if (cancelled) return;
+        // Re-register kiosk if backend lost in-memory state (deploy/restart)
+        const msg = err instanceof Error ? err.message : "";
+        if (msg.includes("not found") || msg.includes("404")) {
+          console.warn("Kiosk expired, re-registering...");
+          registerKiosk(code).then((res) => {
+            if (!cancelled) setKioskId(res.kiosk_id);
+          }).catch(console.error);
+        }
+      });
     };
 
     poll();
@@ -712,7 +722,15 @@ export default function ArenaPage() {
         if (!pendingPollCancelled) {
           pendingDataRef.current = data;
         }
-      }).catch(console.error);
+      }).catch((err) => {
+        if (pendingPollCancelled) return;
+        const msg = err instanceof Error ? err.message : "";
+        if (msg.includes("not found") || msg.includes("404")) {
+          registerKiosk(code).then((res) => {
+            if (!pendingPollCancelled) setKioskId(res.kiosk_id);
+          }).catch(console.error);
+        }
+      });
     };
     pollPending();
     const pendingIv = setInterval(pollPending, 3_000);

@@ -231,7 +231,7 @@ async def live_analysis(
         await websocket.close(code=1008)
         return
 
-    pose = create_pose_detector()
+    pose = None  # lazy-init: only created when JPEG frames arrive (not needed for landmarks mode)
     detector = IncrementalRepDetector()
     scorer = CompositeScorer()
     fatigue_engine = FatigueEngine()
@@ -626,11 +626,20 @@ async def live_analysis(
 
             if "text" in raw and raw["text"]:
                 # Landmarks mode: client sent pose data directly
+                # (msg was already parsed above in the command handler)
                 msg = json.loads(raw["text"])
                 now = time.monotonic()
                 if now - last_frame_time < MIN_FRAME_INTERVAL:
                     await asyncio.sleep(0)
                     continue
+
+                # Estimate actual fps from frame arrival intervals
+                if last_frame_time > 0:
+                    dt = now - last_frame_time
+                    if 0.01 < dt < 2.0:
+                        # Exponential moving average of fps
+                        measured_fps = 1.0 / dt
+                        fps = 0.7 * fps + 0.3 * measured_fps
                 last_frame_time = now
 
                 lm_width = msg.get("width", 640)
@@ -662,6 +671,9 @@ async def live_analysis(
 
                 landmarks_out = [[round(x, 1), round(y, 1)] for x, y in keypoints]
 
+                # Yield to event loop (landmarks are cheap but keep loop responsive)
+                await asyncio.sleep(0)
+
             else:
                 # ── Binary JPEG frames (server-side pose detection) ──
                 # Used by FreeForm and older SquatSense clients.
@@ -674,12 +686,23 @@ async def live_analysis(
                 if now - last_frame_time < MIN_FRAME_INTERVAL:
                     await asyncio.sleep(0)
                     continue
+
+                # Estimate actual fps from frame arrival intervals
+                if last_frame_time > 0:
+                    dt = now - last_frame_time
+                    if 0.01 < dt < 2.0:
+                        measured_fps = 1.0 / dt
+                        fps = 0.7 * fps + 0.3 * measured_fps
                 last_frame_time = now
 
                 frame = _decode_frame(data)
                 if frame is None:
                     await websocket.send_json({"error": "Could not decode frame"})
                     continue
+
+                # Lazy-init pose detector on first JPEG frame
+                if pose is None:
+                    pose = create_pose_detector()
 
                 # Run pose estimation in thread pool
                 loop = asyncio.get_event_loop()
@@ -707,6 +730,18 @@ async def live_analysis(
             # Push to rep detector
             state = detector.push(frame_idx, keypoints, fps, keypoints_3d=keypoints_3d)
             frame_idx += 1
+
+            # Periodic diagnostic logging
+            if frame_idx % 30 == 0:
+                logger.info(
+                    "live_diag: frame=%d, fps=%.1f, phase=%s, reps=%d, "
+                    "knee=%.1f, trunk=%.1f, status=%s, has_3d=%s",
+                    frame_idx, fps, state.get("phase"), detector.rep_count,
+                    state.get("knee_flexion_deg") or 0.0,
+                    state.get("trunk_angle_deg") or 0.0,
+                    state.get("status"),
+                    keypoints_3d is not None,
+                )
 
             # Yield after rep detection (sync CPU work) to keep event loop responsive
             await asyncio.sleep(0)

@@ -523,7 +523,10 @@ export default function ArenaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen, blitzPhase]);
 
-  // ── Start the actual blitz (camera + ws + timer) ─────────────────────
+  // ── Start the actual blitz (session setup + ws + timer) ──────────────
+  // NOTE: camera.resumeCamera() and poseDetection.start() are in the
+  // useEffect below — they must run AFTER the active-phase <video> is
+  // mounted by React, not inside this callback.
   const startBlitz = useCallback(async () => {
     // Notify server that session started and get player token
     let activeToken = playerToken;
@@ -555,16 +558,29 @@ export default function ArenaPage() {
       }
     }
 
-    // Reconnect camera stream to the new video element after phase transition
-    // (React destroys the calibrating <video> and creates a new one for active phase)
+    // Connect websocket (session ID stored in state for the effect below)
+    if (sid) ws.connect(sid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kioskId, playerToken, ws, stopCalibration]);
+
+  // ── Active blitz effect: camera + pose detection + timer ────────────
+  // Runs AFTER React mounts the active-phase <video> element, so
+  // camera.resumeCamera() and poseDetection.start() target the right DOM node.
+  useEffect(() => {
+    if (screen !== "blitz" || blitzPhase !== "active") return;
+
+    // Reconnect camera stream to the new video element
     camera.resumeCamera();
 
     // Start recording + frame data collection for replay
     camera.startRecording();
     ws.markBlitzStart();
 
-    // Connect websocket
-    if (sid) ws.connect(sid);
+    // Start client-side pose detection on the active-phase video
+    const video = camera.videoRef.current;
+    if (video) {
+      poseDetection.start(video);
+    }
 
     // Start timer
     let remaining = 30;
@@ -574,17 +590,11 @@ export default function ArenaPage() {
       setTimer(Math.max(remaining, 0));
       if (remaining <= 0) {
         if (timerRef.current) clearInterval(timerRef.current);
-        endBlitz(sid);
+        endBlitz(sessionId || undefined);
       }
     }, 1_000);
 
-    // Start client-side pose detection for instant skeleton + landmarks
-    const video = camera.videoRef.current;
-    if (video) {
-      poseDetection.start(video);
-    }
-
-    // Send client-detected landmarks to server for rep detection (replaces JPEG frames)
+    // Send client-detected landmarks to server for rep detection
     const landmarkLoop = () => {
       if (remaining <= 0) return;
       const lms = poseDetection.landmarksRef.current;
@@ -605,8 +615,14 @@ export default function ArenaPage() {
       frameLoopRef.current = window.setTimeout(landmarkLoop, 100);
     };
     landmarkLoop();
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (frameLoopRef.current) clearTimeout(frameLoopRef.current);
+      poseDetection.stop();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kioskId, playerToken, camera, ws, stopCalibration, poseDetection]);
+  }, [screen, blitzPhase]);
 
   // ── End blitz ────────────────────────────────────────────────────────
   const endBlitz = useCallback(async (sid?: string) => {

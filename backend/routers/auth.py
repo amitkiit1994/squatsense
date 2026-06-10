@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import html
 import logging
 import secrets
+from collections.abc import Coroutine
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -93,6 +95,105 @@ async def _issue_tokens(
 
 
 # ---------------------------------------------------------------------------
+# Fire-and-forget email tasks
+# ---------------------------------------------------------------------------
+
+_background_tasks: set[asyncio.Task] = set()  # prevent GC of fire-and-forget tasks
+
+
+def _fire_and_forget_email(coro: Coroutine[None, None, None], label: str) -> None:
+    """Run an email coroutine in the background without blocking the request."""
+    task = asyncio.create_task(coro)
+    _background_tasks.add(task)
+
+    def _on_done(t: asyncio.Task) -> None:
+        _background_tasks.discard(t)
+        if t.exception():
+            logger.error("%s task failed", label, exc_info=t.exception())
+
+    task.add_done_callback(_on_done)
+
+
+# ---------------------------------------------------------------------------
+# Welcome email (sent on successful registration)
+# ---------------------------------------------------------------------------
+
+def _build_welcome_html(name: str, dashboard_url: str) -> str:
+    """Build the registration welcome email HTML.
+
+    Unlike the waitlist welcome (which promises future access), this is for
+    users who already have an account: beta is free, 8 exercises, camera-only.
+    """
+    greeting = f"Hi {html.escape(name)}," if name else "Hi,"
+    return f"""\
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; color: #e4e4e7; background-color: #18181b; border-radius: 16px;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h1 style="font-size: 24px; font-weight: 700; margin: 0; color: #fb923c;">FreeForm Fitness</h1>
+      </div>
+      <h2 style="font-size: 20px; font-weight: 600; color: #fafafa; margin: 0 0 16px;">You're in the FreeForm Fitness beta</h2>
+      <p style="font-size: 15px; line-height: 1.6; color: #a1a1aa; margin: 0 0 16px;">
+        {greeting}
+      </p>
+      <p style="font-size: 15px; line-height: 1.6; color: #a1a1aa; margin: 0 0 16px;">
+        Your account is ready and the beta is free while we build. You get
+        real-time form analysis on 8 exercises &mdash; depth, stability, symmetry,
+        tempo, and range of motion scored on every rep.
+      </p>
+      <p style="font-size: 15px; line-height: 1.6; color: #a1a1aa; margin: 0 0 16px;">
+        All you need is a camera &mdash; your phone or laptop works. No wearables,
+        no extra hardware.
+      </p>
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="{dashboard_url}" style="display: inline-block; padding: 12px 32px; background-color: #ea580c; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
+          Open Your Dashboard
+        </a>
+      </div>
+      <p style="font-size: 13px; line-height: 1.6; color: #71717a; margin: 0 0 24px;">
+        It's early &mdash; if something feels off, reply to this email and tell us.
+        Beta feedback directly shapes what we build next.
+      </p>
+      <div style="border-top: 1px solid #27272a; padding-top: 16px; text-align: center;">
+        <p style="font-size: 12px; color: #52525b; margin: 0;">
+          &copy; 2026 FreeForm Fitness. All rights reserved.
+        </p>
+      </div>
+    </div>
+    """
+
+
+async def _send_welcome_email(to_email: str, name: str) -> None:
+    """Send the registration welcome email via Resend HTTP API."""
+    logger.info("[EMAIL] Attempting welcome email to=%s from=%s", to_email, settings.EMAIL_FROM)
+    if not settings.RESEND_API_KEY:
+        logger.warning("[EMAIL] RESEND_API_KEY not configured. Skipping welcome email to %s", to_email)
+        return
+
+    dashboard_url = f"{settings.FRONTEND_URL}/dashboard"
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                settings.RESEND_API_URL,
+                headers={
+                    "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "from": f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM}>",
+                    "to": [to_email],
+                    "subject": "You're in the FreeForm Fitness beta",
+                    "html": _build_welcome_html(name, dashboard_url),
+                },
+                timeout=10.0,
+            )
+        if resp.status_code == 200:
+            logger.info("[EMAIL] Welcome email sent successfully to %s (id=%s)", to_email, resp.json().get("id"))
+        else:
+            logger.error("[EMAIL] Resend API error %s: %s", resp.status_code, resp.text)
+    except Exception:
+        logger.exception("[EMAIL] Failed to send welcome email to %s", to_email)
+
+
+# ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
 
@@ -133,7 +234,14 @@ async def register(
     db.add(user)
     await db.flush()  # populate user.id
 
-    return await _issue_tokens(db, user.id)
+    tokens = await _issue_tokens(db, user.id)
+
+    # Fire-and-forget: never block or fail registration on email problems
+    _fire_and_forget_email(
+        _send_welcome_email(user.email, user.name or ""), "Welcome email"
+    )
+
+    return tokens
 
 
 @router.post(
@@ -308,21 +416,6 @@ async def _send_reset_email(to_email: str, reset_url: str) -> None:
         logger.exception("[EMAIL] Failed to send reset email to %s", to_email)
 
 
-_background_tasks: set[asyncio.Task] = set()  # prevent GC of fire-and-forget tasks
-
-
-def _fire_and_forget_reset_email(to_email: str, reset_url: str) -> None:
-    task = asyncio.create_task(_send_reset_email(to_email, reset_url))
-    _background_tasks.add(task)
-
-    def _on_done(t: asyncio.Task) -> None:
-        _background_tasks.discard(t)
-        if t.exception():
-            logger.exception("Reset email task failed", exc_info=t.exception())
-
-    task.add_done_callback(_on_done)
-
-
 @router.post(
     "/forgot-password",
     summary="Request a password reset email",
@@ -341,7 +434,7 @@ async def forgot_password(
     if user is not None and user.password_hash is not None:
         token = _create_password_reset_token(user.id, user.password_hash)
         reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token}"
-        _fire_and_forget_reset_email(user.email, reset_url)
+        _fire_and_forget_email(_send_reset_email(user.email, reset_url), "Reset email")
 
     return {"message": "If an account with that email exists, a reset link has been sent."}
 

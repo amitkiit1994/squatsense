@@ -1,0 +1,127 @@
+name: uptime
+
+on:
+  schedule:
+    # Roughly every 5 minutes, offset off the :00/:05 marks to dodge the
+    # top-of-minute scheduler congestion. GitHub cron is best-effort:
+    # runs can be delayed several minutes or occasionally skipped.
+    - cron: "3-58/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Probe surfaces
+        shell: bash
+        run: |
+          set -u
+          # url|required-substring (empty substring = HTTP success is enough)
+          checks=(
+            "https://kinely.ai/app|"
+            "https://kinely.ai/status|"
+            "https://traqgym.kinely.ai/start|"
+            "https://www.freeformfitness.ai/|"
+            "https://www.squatsense.ai/|"
+            "https://api.squatsense.ai/api/v1/health|ok"
+          )
+          results="[]"
+          for check in "${checks[@]}"; do
+            url="${check%%|*}"
+            expect="${check#*|}"
+            status="down"
+            detail=""
+            for attempt in 1 2 3; do
+              if body=$(curl -fsSL --max-time 10 "$url" 2>&1); then
+                if [ -z "$expect" ] || grep -q "$expect" <<<"$body"; then
+                  status="up"
+                  detail="OK (attempt $attempt)"
+                  break
+                fi
+                detail="attempt $attempt: response did not contain \"$expect\": ${body:0:500}"
+              else
+                detail="attempt $attempt: ${body:0:500}"
+              fi
+              [ "$attempt" -lt 3 ] && sleep 5
+            done
+            echo "$status: $url"
+            results=$(jq -c --arg url "$url" --arg status "$status" --arg detail "$detail" \
+              '. + [{url: $url, status: $status, detail: $detail}]' <<<"$results")
+          done
+          echo "$results" > "$RUNNER_TEMP/uptime-results.json"
+
+      - name: Manage uptime issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(
+              fs.readFileSync(`${process.env.RUNNER_TEMP}/uptime-results.json`, 'utf8'));
+            const { owner, repo } = context.repo;
+            const runUrl =
+              `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const now = new Date().toISOString();
+            const titleFor = (url) => `UPTIME: ${url} down`;
+
+            // Ensure the "uptime" label exists.
+            try {
+              await github.rest.issues.getLabel({ owner, repo, name: 'uptime' });
+            } catch (e) {
+              if (e.status !== 404) throw e;
+              await github.rest.issues.createLabel({
+                owner, repo, name: 'uptime', color: 'b60205',
+                description: 'Automated uptime alerts',
+              });
+            }
+
+            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, state: 'open', labels: 'uptime', per_page: 100,
+            });
+
+            const failures = results.filter(r => r.status === 'down');
+            for (const f of failures) {
+              const title = titleFor(f.url);
+              const existing = openIssues.find(i => i.title === title);
+              const block = '```\n' + f.detail + '\n```';
+              if (existing) {
+                await github.rest.issues.createComment({
+                  owner, repo, issue_number: existing.number,
+                  body: `Still down at ${now} ([run](${runUrl})).\n\n${block}`,
+                });
+              } else {
+                await github.rest.issues.create({
+                  owner, repo, title, labels: ['uptime'],
+                  body: `Uptime check failed after 3 attempts (10s timeout each).\n\n` +
+                        `Surface: ${f.url}\nFirst seen: ${now}\nRun: ${runUrl}\n\n` +
+                        `Curl output:\n${block}`,
+                });
+              }
+            }
+
+            // Close open issues for surfaces that are healthy again.
+            const healthyTitles = results
+              .filter(r => r.status === 'up')
+              .map(r => titleFor(r.url));
+            for (const issue of openIssues) {
+              if (!healthyTitles.includes(issue.title)) continue;
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: issue.number,
+                body: `Recovered at ${now} ([run](${runUrl})). Closing.`,
+              });
+              await github.rest.issues.update({
+                owner, repo, issue_number: issue.number, state: 'closed',
+              });
+            }
+
+            if (failures.length > 0) {
+              core.setFailed(`${failures.length} surface(s) down: ` +
+                failures.map(f => f.url).join(', '));
+            }

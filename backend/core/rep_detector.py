@@ -11,13 +11,13 @@ from typing import Any, Optional
 
 import numpy as np
 
+from .frame_metrics import compute_baseline, compute_frame_metrics
 from .geometry import (
     hip_y_norm,
     knee_angle_deg_3d,
     pose_valid,
     pose_valid_3d,
 )
-from .frame_metrics import compute_baseline, compute_frame_metrics
 from .signal import median_filter
 
 logger = logging.getLogger(__name__)

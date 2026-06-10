@@ -45,7 +45,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-backend.txt ruff
       - name: Ruff check
-        run: ruff check backend/ --select E,W,F,I --ignore E501
+        # Rule selection lives in ruff.toml (single source of truth).
+        # CLI --select/--ignore flags would override the config's baseline ignores.
+        run: ruff check backend/
 
   check-squatsense:
     name: SquatSense Type Check + Build

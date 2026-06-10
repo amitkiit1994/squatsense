@@ -7,21 +7,18 @@ from datetime import date, datetime, timedelta
 from typing import Any, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import extract, func, select
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.deps import get_current_user, get_current_user_id, get_db
 
 logger = logging.getLogger("squatsense.analytics")
-from backend.models.rep import Rep
-from backend.models.session import Session, Set
+from backend.models.session import Session
 from backend.models.user import User
 from backend.schemas.exercise import (
-    AnalyticsSummary,
     ProgressData,
-    RecentSessionSummary,
     TrendData,
 )
 from backend.services.load_recommender import LoadRecommender

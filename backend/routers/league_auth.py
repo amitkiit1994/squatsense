@@ -19,7 +19,6 @@ from backend.config import settings
 from backend.deps import get_db, get_league_player_id
 from backend.models.league import LeaguePlayer, LeagueTeam
 from backend.rate_limit import limiter
-from backend.services.profanity import is_nickname_clean
 from backend.schemas.league import (
     LeagueForgotPasswordRequest,
     LeagueJoinRequest,
@@ -30,6 +29,7 @@ from backend.schemas.league import (
     LeagueUpgradeRequest,
     LeagueVerifyEmailRequest,
 )
+from backend.services.profanity import is_nickname_clean
 
 logger = logging.getLogger(__name__)
 

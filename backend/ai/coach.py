@@ -11,7 +11,6 @@ and per-rep risk analysis.
 import asyncio
 import json
 import logging
-import os
 import urllib.request
 from typing import Any, Optional
 

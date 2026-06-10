@@ -19,10 +19,10 @@ from backend.core.pose import create_pose_detector, process_frame
 from backend.db.engine import AsyncSessionLocal
 from backend.models.rep import Rep
 from backend.models.session import Set
-from backend.services.scoring import CompositeScorer
-from backend.services.fatigue import FatigueEngine
 from backend.services.exercise_registry import get_exercise_by_name
+from backend.services.fatigue import FatigueEngine
 from backend.services.load_recommender import LoadRecommender
+from backend.services.scoring import CompositeScorer
 
 logger = logging.getLogger(__name__)
 

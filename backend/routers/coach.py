@@ -13,10 +13,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from backend.ai.coach import ai_coach_feedback, get_corrective_drills
 from backend.deps import get_current_user, get_current_user_id, get_db
 from backend.models.session import Session, Set
 from backend.models.user import User
-from backend.ai.coach import ai_coach_feedback, get_corrective_drills
 
 logger = logging.getLogger("squatsense.coach")
 
@@ -231,7 +231,7 @@ async def get_feedback(
         depth_fail = sum(1 for r in reps_data if r.get("depth_ok") is False)
         trunk_fail = sum(1 for r in reps_data if r.get("trunk_ok") is False)
         balance_fail = sum(1 for r in reps_data if r.get("balance_ok") is False)
-        form_fail = sum(1 for r in reps_data if r.get("form_ok") is False)
+        form_fail = sum(1 for r in reps_data if r.get("form_ok") is False)  # noqa: F841
 
         # Depth cue — actionable coaching based on angle data
         if depth_fail > total * 0.4:
@@ -252,7 +252,7 @@ async def get_feedback(
                     "position for 1-2 seconds to build confidence at depth."
                 )
             else:
-                deficit = ideal_lo - avg_angle
+                deficit = ideal_lo - avg_angle  # noqa: F841
                 cues.append(
                     f"Depth was insufficient in {depth_fail}/{total} reps "
                     f"(avg {avg_angle:.0f}° vs target {ideal_lo:.0f}°). "

@@ -14,8 +14,8 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.deps import get_db, get_league_player_id, get_optional_league_player_id
+from backend.models.league import LeaguePlayer, LeagueSession, LeagueTeam
 from backend.rate_limit import limiter
-from backend.models.league import DailyLog, LeaguePlayer, LeagueSession, LeagueTeam
 from backend.schemas.league import (
     CompleteSessionRequest,
     CompleteSessionResponse,

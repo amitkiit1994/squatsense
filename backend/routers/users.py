@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from uuid import UUID
-
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -117,7 +115,7 @@ async def change_password(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Change the user's password after verifying the current password."""
-    from backend.routers.auth import _verify_password, _hash_password
+    from backend.routers.auth import _hash_password, _verify_password
 
     # OAuth users have no password_hash — they can't use password-based change
     if not current_user.password_hash:

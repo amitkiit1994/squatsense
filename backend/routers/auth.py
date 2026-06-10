@@ -18,9 +18,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import settings
 from backend.deps import get_db
-from backend.rate_limit import limiter
 from backend.models.refresh_token import RefreshToken
 from backend.models.user import User
+from backend.rate_limit import limiter
 from backend.schemas.auth import (
     ForgotPasswordRequest,
     LoginRequest,

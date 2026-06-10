@@ -2,11 +2,10 @@ from __future__ import annotations
 
 """AnalysisJob ORM model — persists video analysis jobs across restarts."""
 
-import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, Index, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.db.base import Base

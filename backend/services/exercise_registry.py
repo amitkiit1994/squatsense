@@ -8,18 +8,10 @@ entry point for the rest of the application to retrieve exercise-specific
 parameters such as rep detection thresholds, risk markers, and scoring weights.
 """
 
-from backend.core.exercises.base import ExerciseConfig, ExerciseType
 from backend.core.exercises import (
     ALL_EXERCISES,
-    SQUAT_CONFIG,
-    DEADLIFT_CONFIG,
-    LUNGE_CONFIG,
-    PUSHUP_CONFIG,
-    BENCH_PRESS_CONFIG,
-    OVERHEAD_PRESS_CONFIG,
-    ROW_CONFIG,
-    PULLUP_CONFIG,
 )
+from backend.core.exercises.base import ExerciseConfig, ExerciseType
 
 _EXERCISE_MAP: dict[ExerciseType, ExerciseConfig] = {
     cfg.exercise_type: cfg for cfg in ALL_EXERCISES

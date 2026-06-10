@@ -50,8 +50,8 @@ if not hasattr(SQLiteTypeCompiler, "visit_JSONB"):
 # ---------------------------------------------------------------------------
 # 3.  Now it is safe to import application modules
 # ---------------------------------------------------------------------------
-from backend.db.base import Base  # noqa: E402
 import backend.models  # noqa: E402, F401  -- populate Base.metadata
+from backend.db.base import Base  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # 4.  Test database engine and session factory

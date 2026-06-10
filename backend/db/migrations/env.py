@@ -11,9 +11,14 @@ from backend.db.base import Base
 
 # Import all models so Base.metadata knows about them
 from backend.models import (  # noqa: F401
-    user, session, rep, refresh_token,
-    analysis_job, drill_completion, waitlist_email,
+    analysis_job,
+    drill_completion,
     league,
+    refresh_token,
+    rep,
+    session,
+    user,
+    waitlist_email,
 )
 
 config = context.config

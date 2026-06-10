@@ -1,12 +1,12 @@
 from backend.core.exercises.base import ExerciseConfig, ExerciseType
-from backend.core.exercises.squat import SQUAT_CONFIG
+from backend.core.exercises.bench_press import BENCH_PRESS_CONFIG
 from backend.core.exercises.deadlift import DEADLIFT_CONFIG
 from backend.core.exercises.lunge import LUNGE_CONFIG
-from backend.core.exercises.pushup import PUSHUP_CONFIG
-from backend.core.exercises.bench_press import BENCH_PRESS_CONFIG
 from backend.core.exercises.overhead_press import OVERHEAD_PRESS_CONFIG
-from backend.core.exercises.row import ROW_CONFIG
 from backend.core.exercises.pullup import PULLUP_CONFIG
+from backend.core.exercises.pushup import PUSHUP_CONFIG
+from backend.core.exercises.row import ROW_CONFIG
+from backend.core.exercises.squat import SQUAT_CONFIG
 
 ALL_EXERCISES: list[ExerciseConfig] = [
     SQUAT_CONFIG,

@@ -10,7 +10,6 @@ model with automatic deload detection.
 
 from backend.services.load_recommender import LoadRecommender
 
-
 # ── Intensity-wave pattern (1-indexed week within a mesocycle) ──────────
 # week 1: moderate, week 2: heavy, week 3: heavy, week 4: deload
 _INTENSITY_WAVE: dict[int, str] = {

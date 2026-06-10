@@ -125,8 +125,8 @@ def create_app() -> FastAPI:
     # Import and include routers
     from backend.routers import (
         admin,
-        analytics,
         analysis,
+        analytics,
         auth,
         coach,
         contact,
@@ -159,6 +159,7 @@ def create_app() -> FastAPI:
     @app.get("/api/v1/health", tags=["ops"])
     async def health():
         from sqlalchemy import text
+
         from backend.db.engine import AsyncSessionLocal
 
         try:

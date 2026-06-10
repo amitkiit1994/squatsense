@@ -10,7 +10,6 @@ metric time-series and combines the resulting slopes into a single
 
 import numpy as np
 
-
 # Weights for the four decay dimensions when computing fatigue_index.
 _WEIGHTS = {
     "velocity_decay": 0.35,

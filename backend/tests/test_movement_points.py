@@ -6,7 +6,7 @@ Covers: calculate_session_points, check_daily_caps, update_streak,
 compute_rank, get_streak_multiplier.
 """
 
-from datetime import date, timedelta
+from datetime import date
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +15,6 @@ from backend.models.league import LeaguePlayer
 from backend.services.movement_points import (
     MAX_REPS_PER_DAY,
     MAX_SESSIONS_PER_DAY,
-    MIN_FORM_THRESHOLD,
     calculate_session_points,
     check_daily_caps,
     compute_rank,
@@ -23,7 +22,6 @@ from backend.services.movement_points import (
     get_streak_multiplier,
     update_streak,
 )
-
 
 # ── calculate_session_points ────────────────────────────────────────────────
 

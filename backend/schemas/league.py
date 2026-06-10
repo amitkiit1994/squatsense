@@ -6,8 +6,8 @@ from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from backend.schemas.auth import _validate_password_strength
 
+from backend.schemas.auth import _validate_password_strength
 
 # ── Auth Schemas ─────────────────────────────────────────────────────────────
 

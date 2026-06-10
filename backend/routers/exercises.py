@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.deps import get_current_user, get_current_user_id, get_db
+from backend.deps import get_current_user, get_db
 from backend.models.session import Session
 from backend.models.user import User
 from backend.schemas.exercise import ExerciseInfo, ExerciseListResponse, ExerciseProgram

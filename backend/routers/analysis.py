@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import shutil
 import tempfile
 import threading
 import time
@@ -13,11 +12,9 @@ from pathlib import Path
 from typing import Any
 
 import cv2
-import numpy as np
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.pose import create_pose_detector, process_frame
 from backend.db.engine import AsyncSessionLocal
@@ -87,7 +84,6 @@ def _run_analysis(job_id: str, video_path: str, exercise_type: str) -> None:
     try:
         # Lazy import to avoid loading heavy libs at module level
         from backend.core.rep_detector import IncrementalRepDetector
-        from backend.core.frame_metrics import compute_frame_metrics
         from backend.core.smoothing import smooth_keypoints_ema, smooth_keypoints_ema_3d
 
         pose = create_pose_detector()

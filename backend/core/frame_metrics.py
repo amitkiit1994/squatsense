@@ -6,19 +6,18 @@ Extracted from src/reps.py. Uses backend.core.geometry for all angle/pose
 calculations. Produces a metrics dict consumed by the scoring engine and
 rep detector.
 """
-import math
 from typing import Any, Optional
 
 from .geometry import (
-    com_proxy,
     balance_metrics,
+    com_proxy,
     hip_angle_deg,
     hip_below_knee,
     hip_below_knee_3d,
     knee_angle_deg,
     knee_angle_deg_3d,
-    knee_angles_deg_separate,
     knee_angles_deg_3d_separate,
+    knee_angles_deg_separate,
     pose_valid_3d,
     trunk_angle_deg,
     trunk_angle_deg_3d,

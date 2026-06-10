@@ -7,7 +7,7 @@ Uses Pose Landmarker task (MediaPipe 0.10+). CPU-only, suitable for macOS.
 """
 import os
 import urllib.request
-from typing import Any, Optional, TypedDict
+from typing import Optional, TypedDict
 
 import cv2
 import numpy as np

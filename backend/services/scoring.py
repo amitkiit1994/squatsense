@@ -9,7 +9,7 @@ using the weights defined in the exercise configuration.
 
 import logging
 
-from backend.core.exercises.base import ExerciseConfig, ExerciseType
+from backend.core.exercises.base import ExerciseConfig
 
 logger = logging.getLogger("squatsense.scoring")
 

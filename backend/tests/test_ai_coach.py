@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 """Tests for the AI coaching module (static drill lookup only -- no LLM calls)."""
-import pytest
 
-from backend.ai.coach import get_corrective_drills, _extract_json, _validate_coaching_response
+from backend.ai.coach import (
+    _extract_json,
+    _validate_coaching_response,
+    get_corrective_drills,
+)
 
 
 class TestCorrectiveDrills:

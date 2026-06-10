@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 """Tests for per-frame biomechanics metrics computation."""
-import pytest
 
 from backend.core.frame_metrics import compute_baseline, compute_frame_metrics
 

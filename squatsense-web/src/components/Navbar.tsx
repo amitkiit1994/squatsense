@@ -51,7 +51,7 @@ export default function Navbar() {
         <div className="flex items-center gap-0.5 sm:gap-1">
           <Link
             href="/leaderboard"
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+            className={`px-2 sm:px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
               pathname === "/leaderboard"
                 ? "text-[#00ff88] bg-[#00ff88]/10"
                 : "text-[#888] hover:text-[#f0f0f0]"
@@ -73,9 +73,10 @@ export default function Navbar() {
 
           {authed ? (
             <>
+              {/* Username hidden on small screens so the Play CTA always fits */}
               <Link
                 href="/profile"
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors truncate max-w-[120px] ${
+                className={`hidden sm:inline-flex px-3 py-1.5 text-sm font-medium rounded-lg transition-colors truncate max-w-[120px] ${
                   pathname === "/profile"
                     ? "text-[#00ff88] bg-[#00ff88]/10"
                     : "text-[#888] hover:text-[#f0f0f0]"
@@ -85,7 +86,7 @@ export default function Navbar() {
               </Link>
               <button
                 onClick={handleLogout}
-                className="px-3 py-1.5 text-sm font-medium text-[#888] hover:text-[#ff3366] rounded-lg transition-colors cursor-pointer"
+                className="px-2 sm:px-3 py-1.5 text-sm font-medium text-[#888] hover:text-[#ff3366] rounded-lg transition-colors cursor-pointer"
               >
                 Logout
               </button>
@@ -93,7 +94,7 @@ export default function Navbar() {
           ) : (
             <Link
               href="/join"
-              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+              className={`px-2 sm:px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                 pathname === "/join" || pathname === "/register"
                   ? "text-[#00ff88] bg-[#00ff88]/10"
                   : "text-[#888] hover:text-[#f0f0f0]"
@@ -105,7 +106,7 @@ export default function Navbar() {
 
           <Link
             href="/play"
-            className="ml-1 px-4 py-1.5 text-sm font-bold bg-[#00ff88] text-[#0a0a0a] rounded-lg hover:bg-[#00e07a] transition-colors"
+            className="ml-1 shrink-0 px-3 sm:px-4 py-1.5 text-sm font-bold bg-[#00ff88] text-[#0a0a0a] rounded-lg hover:bg-[#00e07a] transition-colors"
           >
             Play
           </Link>

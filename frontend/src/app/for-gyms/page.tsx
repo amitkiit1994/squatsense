@@ -116,7 +116,7 @@ function GymInquiryForm() {
   }
 
   const inputClass =
-    "w-full rounded-xl border border-zinc-700/50 bg-zinc-900/80 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none backdrop-blur-sm transition focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50";
+    "w-full rounded-xl border border-zinc-700/50 bg-zinc-900/80 px-4 py-3 text-base text-zinc-100 placeholder:text-zinc-500 outline-none backdrop-blur-sm transition focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50 sm:text-sm";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">

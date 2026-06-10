@@ -61,7 +61,7 @@ function WaitlistForm({ id, glow }: { id: string; glow?: boolean }) {
           placeholder="Enter your email"
           value={email}
           onChange={(e) => { setEmail(e.target.value); if (status === "error") setStatus("idle"); }}
-          className="flex-1 rounded-xl border border-zinc-700/50 bg-zinc-900/80 px-4 py-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none backdrop-blur-sm transition focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50"
+          className="flex-1 rounded-xl border border-zinc-700/50 bg-zinc-900/80 px-4 py-3.5 text-base text-zinc-100 placeholder:text-zinc-500 outline-none backdrop-blur-sm transition focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50 sm:text-sm"
         />
         <button
           type="submit"
@@ -190,7 +190,7 @@ export default function WaitlistPage() {
           <Link href="/pricing" className="text-zinc-400 hover:text-zinc-200 transition-colors">
             Pricing
           </Link>
-          <Link href="/for-gyms" className="hidden sm:inline text-zinc-400 hover:text-zinc-200 transition-colors">
+          <Link href="/for-gyms" className="whitespace-nowrap text-zinc-400 hover:text-zinc-200 transition-colors">
             For Gyms
           </Link>
           <Link

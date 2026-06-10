@@ -132,6 +132,18 @@ function RegisterForm() {
         router.push("/?invite=denied");
         return;
       }
+      if (err instanceof ApiResponseError && err.status === 404) {
+        // The account was created and tokens stored, but the profile read
+        // lagged behind (read-after-write race). Treat as success — the
+        // profile loads on the next screen.
+        try {
+          localStorage.setItem("onboarding_name", name);
+        } catch {
+          // localStorage not available
+        }
+        setShowBetaConfirmation(true);
+        return;
+      }
       const message = err instanceof Error ? err.message : "Registration failed";
       setError(message);
       setSubmitting(false);

@@ -257,7 +257,7 @@ export default function WaitlistPage() {
             </Link>
           </div>
           <p className="mt-1 text-xs text-zinc-500">
-            Free tier includes 2 sessions/week on squat, deadlift, and bench.
+            Free during beta. No credit card required.
           </p>
           <p className="text-xs text-zinc-500">
             Already have an account?{" "}

@@ -108,8 +108,8 @@ function GymInquiryForm() {
         </svg>
         <p className="text-lg font-semibold">Inquiry received</p>
         <p className="mt-2 text-sm text-emerald-400/80">
-          Our team will reach out within 24 hours to discuss how FreeForm Fitness
-          can work for your gym.
+          Our team will reach out within one business day to discuss how
+          FreeForm Fitness can work for your gym.
         </p>
       </div>
     );
@@ -285,9 +285,9 @@ export default function ForGymsPage() {
           </span>
         </h1>
         <p className="animate-fade-in-up delay-100 mx-auto mt-4 max-w-xl text-sm leading-relaxed text-zinc-400 sm:text-base">
-          Give every member access to real-time AI coaching. Camera-based
-          movement analysis on the gym floor -- no wearables, no extra hardware
-          for members, just better training outcomes.
+          We are onboarding our founding gym partners. Give every member access
+          to real-time AI coaching -- camera-based movement analysis on the gym
+          floor, no wearables, no extra hardware for members.
         </p>
       </section>
 
@@ -297,7 +297,7 @@ export default function ForGymsPage() {
           {/* Benefits */}
           <div>
             <h2 className="text-xl font-bold text-zinc-100 sm:text-2xl">
-              Why gyms choose FreeForm Fitness
+              Become a founding gym partner
             </h2>
             <div className="mt-6 space-y-5">
               {[
@@ -311,7 +311,7 @@ export default function ForGymsPage() {
                 },
                 {
                   title: "Scale coaching without headcount",
-                  desc: "One camera station coaches dozens of members per hour. Supplement your trainers, not replace them.",
+                  desc: "One camera station is built to coach dozens of members per hour. Supplement your trainers, not replace them.",
                 },
                 {
                   title: "Data-driven member engagement",
@@ -319,7 +319,7 @@ export default function ForGymsPage() {
                 },
                 {
                   title: "Simple installation",
-                  desc: "One camera per station, wall or tripod mounted. We handle setup, calibration, and software updates.",
+                  desc: "One camera per station, wall or tripod mounted. We will handle setup, calibration, and software updates for every install.",
                 },
               ].map((item) => (
                 <div key={item.title} className="flex gap-3">
@@ -365,8 +365,8 @@ export default function ForGymsPage() {
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-sm text-zinc-400 sm:text-base">
             FreeForm Fitness is designed from the ground up for high-traffic gym
-            environments. Works with any standard camera, handles multiple users
-            per station, and runs reliably all day.
+            environments -- built to work with any standard camera, handle
+            multiple users per station, and run all day.
           </p>
           <div className="mt-8 grid gap-3 sm:mt-12 sm:grid-cols-3 sm:gap-5">
             {[

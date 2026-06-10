@@ -794,7 +794,12 @@ async def get_global_leaderboard(
     period: str = Query("week", pattern="^(today|week|alltime)$"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Global leaderboard across all players."""
+    """Global leaderboard across all players.
+
+    Unlike the team leaderboard, this is a public page: zero-point rows and
+    internal test accounts are excluded so the frontend can show its empty
+    state instead of a podium of 0.0 scores.
+    """
     today_utc = datetime.now(timezone.utc).date()
 
     # Date filter goes in the JOIN clause so the LEFT JOIN is preserved
@@ -811,15 +816,18 @@ async def get_global_leaderboard(
             func.date(LeagueSession.created_at) >= week_start,
         )
 
+    total_points = func.coalesce(func.sum(LeagueSession.points_earned), 0)
+
     query = (
         select(
             LeaguePlayer.id,
             LeaguePlayer.nickname,
             LeaguePlayer.avatar_seed,
             LeaguePlayer.rank,
-            func.coalesce(func.sum(LeagueSession.points_earned), 0).label("total"),
+            total_points.label("total"),
         )
         .outerjoin(LeagueSession, join_condition)
+        .where(LeaguePlayer.is_test.is_(False))
     )
 
     query = (
@@ -829,7 +837,8 @@ async def get_global_leaderboard(
             LeaguePlayer.avatar_seed,
             LeaguePlayer.rank,
         )
-        .order_by(func.coalesce(func.sum(LeagueSession.points_earned), 0).desc())
+        .having(total_points > 0)
+        .order_by(total_points.desc())
         .limit(50)
     )
 
@@ -851,19 +860,24 @@ async def get_global_leaderboard(
 
 @router.get("/stats", response_model=GlobalStatsResponse)
 async def get_global_stats(db: AsyncSession = Depends(get_db)):
-    """Global stats for the landing page ticker."""
+    """Global stats for the landing page ticker (test accounts excluded)."""
     today = datetime.now(timezone.utc).date()
 
     # Today's squats
     squats_result = await db.execute(
-        select(func.coalesce(func.sum(LeagueSession.reps_counted), 0)).where(
-            func.date(LeagueSession.created_at) == today
+        select(func.coalesce(func.sum(LeagueSession.reps_counted), 0))
+        .join(LeaguePlayer, LeagueSession.player_id == LeaguePlayer.id)
+        .where(
+            func.date(LeagueSession.created_at) == today,
+            LeaguePlayer.is_test.is_(False),
         )
     )
     total_squats_today = int(squats_result.scalar_one())
 
     # Total players
-    players_result = await db.execute(select(func.count(LeaguePlayer.id)))
+    players_result = await db.execute(
+        select(func.count(LeaguePlayer.id)).where(LeaguePlayer.is_test.is_(False))
+    )
     total_players = players_result.scalar_one()
 
     # Total teams

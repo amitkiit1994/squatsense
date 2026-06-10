@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createTeam, getTeam, type TeamResponse } from "@/lib/api";
+import { getToken } from "@/lib/auth";
 
 type Step = "choose" | "create" | "join" | "ready";
 
@@ -43,15 +44,32 @@ export default function SetupPage() {
   const inputClass =
     "w-full bg-[#141414] border-2 border-[#2a2a2a] rounded-xl px-5 py-3.5 text-base text-white placeholder-[#555555] outline-none focus:border-[#00ff88] transition-colors";
 
+  function startCreateTeam() {
+    // Creating a team requires a league account — send visitors through
+    // /join first and bring them back here afterwards.
+    if (!getToken()) {
+      router.push("/join?returnTo=/setup");
+      return;
+    }
+    setStep("create");
+    setError("");
+  }
+
   async function handleCreateTeam(e: React.FormEvent) {
     e.preventDefault();
     if (!teamName.trim() || loading) return;
+
+    const token = getToken();
+    if (!token) {
+      router.push("/join?returnTo=/setup");
+      return;
+    }
 
     setError("");
     setLoading(true);
 
     try {
-      const res = await createTeam(teamName.trim());
+      const res = await createTeam(token, teamName.trim());
       setTeam(res);
       setStep("ready");
     } catch (err: unknown) {
@@ -118,7 +136,7 @@ export default function SetupPage() {
         {step === "choose" && (
           <div className="space-y-4">
             <button
-              onClick={() => { setStep("create"); setError(""); }}
+              onClick={startCreateTeam}
               className="w-full p-5 rounded-xl bg-[#141414] border-2 border-[#2a2a2a] hover:border-[#00ff88]/50 transition-colors text-left cursor-pointer group"
             >
               <div className="text-lg font-bold text-white group-hover:text-[#00ff88] transition-colors">

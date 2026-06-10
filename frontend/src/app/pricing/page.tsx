@@ -106,13 +106,13 @@ export default function PricingPage() {
           </span>
         </h1>
         <p className="animate-fade-in-up delay-100 mx-auto mt-4 max-w-xl text-sm leading-relaxed text-zinc-400 sm:text-base">
-          Start free with core exercises. Upgrade when you are ready for
-          unlimited sessions, all 8 movements, AI coaching, and adaptive
-          programming.
+          All features are free during the beta. The plans below show our
+          planned pricing for general availability.
         </p>
         <p className="animate-fade-in-up delay-200 mx-auto mt-3 max-w-xl text-xs leading-relaxed text-zinc-500">
-          FreeForm Fitness is currently in beta. All paid prices are
-          introductory and may change at general availability.
+          FreeForm Fitness is currently in beta. Billing is not live yet --
+          planned prices are introductory and may change at general
+          availability.
         </p>
       </section>
 
@@ -153,7 +153,7 @@ export default function PricingPage() {
           <div className="relative glass-card flex flex-col rounded-2xl border border-orange-500/40 p-6 sm:p-8">
             {/* Badge */}
             <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-orange-600 px-3 py-0.5 text-xs font-semibold text-white">
-              Most Popular
+              Recommended
             </span>
             <p className="text-xs font-medium uppercase tracking-widest text-orange-400">
               Pro
@@ -163,7 +163,7 @@ export default function PricingPage() {
               <span className="text-sm font-normal text-zinc-500">/mo</span>
             </p>
             <p className="mt-1 text-xs text-orange-400/80">
-              Introductory beta price
+              Planned price -- free during beta
             </p>
             <p className="mt-2 text-sm text-zinc-400">
               Unlock every exercise, AI coaching, fatigue modeling, and adaptive
@@ -180,11 +180,14 @@ export default function PricingPage() {
             </ul>
 
             <Link
-              href="/register?plan=pro"
+              href="/register"
               className="mt-8 block rounded-xl bg-orange-600 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-orange-500 animate-glow-pulse"
             >
-              Go Pro
+              Join Beta
             </Link>
+            <p className="mt-2 text-center text-xs text-zinc-500">
+              Pro features are free during the beta.
+            </p>
           </div>
 
           {/* ── For Gyms ────────────────────────────────────────── */}
@@ -227,7 +230,7 @@ export default function PricingPage() {
             {[
               {
                 q: "What does beta mean for pricing?",
-                a: "FreeForm Fitness is in beta. During the beta, accounts are free and no credit card is required. The prices listed here are introductory and may change at general availability.",
+                a: "FreeForm Fitness is in beta. During the beta, accounts are free, every feature is available to everyone, and no credit card is required. Billing has not launched yet -- the plans listed here are planned pricing and may change at general availability.",
               },
               {
                 q: "Do I need any special hardware?",
@@ -235,15 +238,15 @@ export default function PricingPage() {
               },
               {
                 q: "Can I cancel anytime?",
-                a: "Yes. Pro is month-to-month with no contract. Cancel anytime from your account settings.",
+                a: "Yes. When billing launches, Pro will be month-to-month with no contract -- cancel anytime from your account settings. During the beta there is nothing to cancel because nothing is charged.",
               },
               {
                 q: "Which exercises are included in the free tier?",
-                a: "Squat, deadlift, and bench press. Pro unlocks overhead press, row, pull-up, lunge, and push-up.",
+                a: "The planned free tier covers squat, deadlift, and bench press, with Pro adding overhead press, row, pull-up, lunge, and push-up. During the beta, all 8 exercises are available to every account.",
               },
               {
                 q: "How does gym licensing work?",
-                a: "We install camera stations in your gym and provide real-time coaching to members on screen. Contact us for pricing based on number of locations and cameras.",
+                a: "We are onboarding founding gym partners. A FreeForm install puts camera stations in your gym that coach members on screen in real time. Contact us to discuss a pilot based on your number of locations and cameras.",
               },
             ].map((item) => (
               <div

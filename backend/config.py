@@ -95,6 +95,7 @@ class Settings(BaseSettings):
     RESEND_API_KEY: Optional[str] = None
     EMAIL_FROM: str = "amit@freeformfitness.ai"
     EMAIL_FROM_NAME: str = "FreeForm Fitness"
+    GYM_INQUIRY_NOTIFY_EMAIL: str = "amit@freeformfitness.ai"
     SQUATSENSE_EMAIL_FROM: str = "play@squatsense.ai"
     SQUATSENSE_EMAIL_FROM_NAME: str = "SquatSense"
 

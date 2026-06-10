@@ -80,6 +80,10 @@ class LeaguePlayer(Base):
     email_verified: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default="false"
     )
+    # Internal/founder test accounts — hidden from public leaderboards & stats
+    is_test: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
     avatar_seed: Mapped[str] = mapped_column(
         String(32), nullable=False, default=lambda: uuid.uuid4().hex[:8]
     )

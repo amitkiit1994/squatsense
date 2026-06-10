@@ -128,6 +128,7 @@ def create_app() -> FastAPI:
         analysis,
         auth,
         coach,
+        contact,
         exercises,
         gym_inquiry,
         league,
@@ -149,6 +150,7 @@ def create_app() -> FastAPI:
     app.include_router(coach.router, prefix=api_prefix)
     app.include_router(waitlist.router, prefix=api_prefix)
     app.include_router(gym_inquiry.router, prefix=api_prefix)
+    app.include_router(contact.router, prefix=api_prefix)
     app.include_router(league_auth.router, prefix=api_prefix)
     app.include_router(league.router, prefix=api_prefix)
 

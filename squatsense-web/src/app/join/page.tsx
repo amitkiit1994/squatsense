@@ -15,21 +15,28 @@ export default function JoinPage() {
   );
 }
 
+// Only allow internal single-slash paths (e.g. "/setup") as redirect targets
+function sanitizeReturnTo(value: string | null): string | null {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
+  return value;
+}
+
 function JoinPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const teamCode = searchParams.get("team") || undefined;
+  const returnTo = sanitizeReturnTo(searchParams.get("returnTo"));
 
   const [nickname, setNickname] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Already authenticated — skip to play (unless joining a specific team)
+  // Already authenticated — skip ahead (unless joining a specific team)
   useEffect(() => {
     if (!teamCode && isLoggedIn()) {
-      router.replace("/play");
+      router.replace(returnTo || "/play");
     }
-  }, [router, teamCode]);
+  }, [router, teamCode, returnTo]);
 
   const isValid = nickname.trim().length >= 3 && nickname.trim().length <= 20;
 
@@ -49,7 +56,7 @@ function JoinPageInner() {
       });
       identifyUser(res.player_id);
       trackEvent("league_joined", { player_id: res.player_id, nickname: res.nickname, team_code: res.team_code });
-      router.push("/play");
+      router.push(returnTo || "/play");
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Something went wrong";

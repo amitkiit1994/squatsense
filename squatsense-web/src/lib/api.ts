@@ -85,10 +85,11 @@ export interface TeamResponse {
   member_count: number;
 }
 
-export function createTeam(name: string) {
+export function createTeam(token: string, name: string) {
   return apiFetch<TeamResponse>("/api/v1/league/teams", {
     method: "POST",
     body: JSON.stringify({ name }),
+    token,
   });
 }
 

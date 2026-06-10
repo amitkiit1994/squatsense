@@ -54,8 +54,8 @@ const benefits = [
     ),
   },
   {
-    title: "Tracks participation",
-    description: "See who is playing, how often, and how the office stacks up. Real data for your wellness program.",
+    title: "Live leaderboard",
+    description: "The arena display shows who is playing today and how players stack up — live, on the office TV.",
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
@@ -76,6 +76,7 @@ const pricing = [
       "QR code join flow",
       "Real-time AI form scoring",
     ],
+    comingSoon: [] as string[],
     cta: "Set Up Now",
     href: "/setup",
     accent: "#00ff88",
@@ -84,14 +85,17 @@ const pricing = [
   {
     name: "ENTERPRISE",
     price: "Contact us",
-    description: "Multi-location, custom branding",
+    description: "Multi-location offices — early access",
     features: [
-      "Multiple office locations",
+      "Everything in Starter",
+      "Multiple locations via team codes",
+      "Direct support from the founding team",
+    ],
+    comingSoon: [
       "Cross-office leaderboards",
       "Company branding on kiosk",
       "Admin dashboard",
       "Participation analytics",
-      "Dedicated support",
     ],
     cta: "Get in Touch",
     href: "#contact",
@@ -388,11 +392,11 @@ export default function ForOfficesPage() {
         </div>
       </section>
 
-      {/* Social Proof / Stats */}
+      {/* Product Stats */}
       <section className="px-6 py-20 border-t border-[#2a2a2a]/50">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-sm font-bold tracking-[0.3em] text-[#888888] uppercase mb-12">
-            Early Traction
+            By The Numbers
           </h2>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -465,7 +469,32 @@ export default function ForOfficesPage() {
                       <span className="text-[#cccccc]">{feature}</span>
                     </li>
                   ))}
+                  {plan.comingSoon.map((feature) => (
+                    <li key={feature} className="flex items-start gap-3 text-sm">
+                      <svg
+                        className="w-4 h-4 mt-0.5 shrink-0 text-[#555555]"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-[#888888]">
+                        {feature}{" "}
+                        <span className="text-[10px] font-bold tracking-widest text-[#666666] uppercase">
+                          Coming soon
+                        </span>
+                      </span>
+                    </li>
+                  ))}
                 </ul>
+
+                {plan.comingSoon.length > 0 && (
+                  <p className="text-xs text-[#888888] mb-6 -mt-4">
+                    We are early stage — enterprise partners get early access and shape the roadmap with us.
+                  </p>
+                )}
 
                 {plan.href.startsWith("#") ? (
                   <a
@@ -490,6 +519,46 @@ export default function ForOfficesPage() {
                     {plan.cta}
                   </Link>
                 )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Privacy & Data */}
+      <section className="px-6 py-20 border-t border-[#2a2a2a]/50">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-center text-sm font-bold tracking-[0.3em] text-[#888888] uppercase mb-4">
+            Privacy &amp; Data
+          </h2>
+          <p className="text-center text-2xl sm:text-3xl font-bold text-white max-w-2xl mx-auto mb-12">
+            Video never leaves the device<span className="text-[#00ff88]">.</span>
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {[
+              {
+                title: "On-device pose detection",
+                description:
+                  "Movement analysis runs in the browser on the kiosk itself. Camera video is never recorded, stored, or uploaded.",
+              },
+              {
+                title: "Only coordinates are sent",
+                description:
+                  "Our servers receive anonymous skeletal coordinates for scoring — numbers, not video frames.",
+              },
+              {
+                title: "Opt-in by design",
+                description:
+                  "Nobody is monitored. Employees choose to play by scanning the QR code, and we store only nicknames, reps, and scores.",
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="bg-[#141414] border border-[#2a2a2a] rounded-2xl p-6 hover:border-[#00ff88]/20 transition-colors"
+              >
+                <h3 className="text-base font-bold text-white mb-2">{item.title}</h3>
+                <p className="text-[#888888] text-sm leading-relaxed">{item.description}</p>
               </div>
             ))}
           </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState, type FormEvent } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { ApiResponseError } from "@/lib/api";
@@ -87,7 +87,6 @@ function BetaAccessGranted({ name, onContinue }: { name: string; onContinue: () 
 
 function RegisterForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { register, isLoading } = useAuth();
 
   const [name, setName] = useState("");
@@ -97,9 +96,6 @@ function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showBetaConfirmation, setShowBetaConfirmation] = useState(false);
-
-  // Read plan from query params for Pro CTA from pricing page
-  const plan = searchParams.get("plan");
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -124,9 +120,6 @@ function RegisterForm() {
       // Store name for pre-filling the profile onboarding step
       try {
         localStorage.setItem("onboarding_name", name);
-        if (plan) {
-          localStorage.setItem("selected_plan", plan);
-        }
       } catch {
         // localStorage not available
       }
@@ -172,9 +165,7 @@ function RegisterForm() {
         <CardHeader className="text-center">
           <CardTitle className="text-white">Create your account</CardTitle>
           <CardDescription className="text-zinc-400">
-            {plan === "pro"
-              ? "Sign up to start your Pro trial"
-              : "Get started with AI-powered movement intelligence"}
+            Get started with AI-powered movement intelligence
           </CardDescription>
         </CardHeader>
         <CardContent>

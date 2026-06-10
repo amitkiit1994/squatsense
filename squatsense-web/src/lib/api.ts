@@ -121,6 +121,31 @@ export function getTeamToday(code: string) {
   );
 }
 
+export interface TeamAnalyticsDay {
+  date: string;
+  sessions: number;
+}
+
+export interface TeamAnalyticsTopPlayer {
+  nickname: string;
+  avatar_seed: string;
+  best_score: number;
+}
+
+export interface TeamAnalyticsResponse {
+  team_code: string;
+  team_name: string;
+  total_sessions: number;
+  unique_players: number;
+  avg_score: number;
+  sessions_per_day: TeamAnalyticsDay[];
+  top_players: TeamAnalyticsTopPlayer[];
+}
+
+export function getTeamAnalytics(code: string) {
+  return apiFetch<TeamAnalyticsResponse>(`/api/v1/league/teams/${code}/analytics`);
+}
+
 // ── Sessions ────────────────────────────────────────────────────────────
 
 export interface StartSessionResponse {

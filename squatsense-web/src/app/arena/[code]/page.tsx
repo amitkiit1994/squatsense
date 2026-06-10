@@ -1103,6 +1103,13 @@ export default function ArenaPage() {
               <span className="text-lg 2xl:text-xl text-[#888] ml-2">total points</span>
             </div>
           </div>
+          <div className="w-px h-8 bg-[#2a2a2a]" />
+          <a
+            href={`/team/${code}/analytics`}
+            className="text-sm font-bold tracking-[0.2em] text-[#555] hover:text-[#00ff88] transition-colors"
+          >
+            TEAM ANALYTICS
+          </a>
         </div>
 
         {/* (g) Idle mode CSS animation injected as style tag */}

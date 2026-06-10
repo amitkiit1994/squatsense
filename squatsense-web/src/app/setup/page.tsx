@@ -336,6 +336,15 @@ export default function SetupPage() {
               Team members scan the QR code to play.
             </p>
 
+            {/* Team analytics */}
+            <Link
+              href={`/team/${team.code}/analytics`}
+              className="block w-full py-3.5 rounded-xl text-center font-bold border-2 border-[#06b6d4]/40 text-[#06b6d4]
+                         hover:bg-[#06b6d4]/10 transition-colors"
+            >
+              VIEW TEAM ANALYTICS
+            </Link>
+
             <button
               onClick={() => { setStep("choose"); setTeam(null); setError(""); setCopied(false); }}
               className="w-full py-3 text-[#888888] hover:text-white transition-colors text-sm cursor-pointer"

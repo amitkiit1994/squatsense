@@ -108,7 +108,15 @@ export function useAuth(): UseAuthReturn {
       const tokens = await apiRegister(payload);
       setTokens(tokens.access_token, tokens.refresh_token);
 
-      const me = await getMe();
+      // The profile read can transiently 404 right after account creation
+      // (read-after-write lag on the backend); retry once before failing.
+      let me: User;
+      try {
+        me = await getMe();
+      } catch {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        me = await getMe();
+      }
       setUser(me);
       return me;
     },

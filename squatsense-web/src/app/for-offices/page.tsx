@@ -75,6 +75,7 @@ const pricing = [
       "Live leaderboard display",
       "QR code join flow",
       "Real-time AI form scoring",
+      "Participation analytics dashboard",
     ],
     comingSoon: [] as string[],
     cta: "Set Up Now",
@@ -89,13 +90,13 @@ const pricing = [
     features: [
       "Everything in Starter",
       "Multiple locations via team codes",
+      "Per-location analytics via team codes",
       "Direct support from the founding team",
     ],
     comingSoon: [
       "Cross-office leaderboards",
       "Company branding on kiosk",
       "Admin dashboard",
-      "Participation analytics",
     ],
     cta: "Get in Touch",
     href: "#contact",

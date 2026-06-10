@@ -6,7 +6,7 @@ import logging
 import secrets
 import time
 import uuid as _uuid
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -31,6 +31,9 @@ from backend.schemas.league import (
     SessionShareResponse,
     StartSessionRequest,
     StartSessionResponse,
+    TeamAnalyticsDay,
+    TeamAnalyticsResponse,
+    TeamAnalyticsTopPlayer,
     TeamResponse,
 )
 from backend.services.movement_points import (
@@ -264,6 +267,114 @@ async def get_team_today(
         "points_today": float(row.points),
         "active_players": row.players,
     }
+
+
+@router.get("/teams/{team_code}/analytics", response_model=TeamAnalyticsResponse)
+async def get_team_analytics(
+    team_code: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Aggregated kiosk analytics for a team.
+
+    Authorization follows the existing team-scoped read pattern
+    (``/teams/{code}/leaderboard``, ``/teams/{code}/today``): the team code
+    acts as the access capability and no player token is required, so the
+    arena display and a team owner's browser can both load this directly.
+    Internal test accounts are excluded from every aggregate.
+    """
+    result = await db.execute(
+        select(LeagueTeam).where(LeagueTeam.code == team_code.upper())
+    )
+    team = result.scalar_one_or_none()
+    if team is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")
+
+    # ── Overall aggregates (non-test players only) ───────────────────────
+    agg = await db.execute(
+        select(
+            func.count(LeagueSession.id).label("sessions"),
+            func.count(func.distinct(LeagueSession.player_id)).label("players"),
+            func.coalesce(func.avg(LeagueSession.points_earned), 0).label("avg_score"),
+        )
+        .join(LeaguePlayer, LeagueSession.player_id == LeaguePlayer.id)
+        .where(
+            LeagueSession.team_id == team.id,
+            LeaguePlayer.is_test.is_(False),
+        )
+    )
+    totals = agg.one()
+
+    # ── Sessions per day, last 30 days (zero-filled, oldest first) ───────
+    today_utc = datetime.now(timezone.utc).date()
+    window_start = today_utc - timedelta(days=29)
+
+    day_col = func.date(LeagueSession.created_at)
+    day_rows = (
+        await db.execute(
+            select(
+                day_col.label("day"),
+                func.count(LeagueSession.id).label("sessions"),
+            )
+            .join(LeaguePlayer, LeagueSession.player_id == LeaguePlayer.id)
+            .where(
+                LeagueSession.team_id == team.id,
+                LeaguePlayer.is_test.is_(False),
+                day_col >= window_start,
+            )
+            .group_by(day_col)
+        )
+    ).all()
+
+    # func.date() returns a date on Postgres but an ISO string on SQLite
+    counts_by_day: dict[date, int] = {}
+    for row in day_rows:
+        day = row.day if isinstance(row.day, date) else date.fromisoformat(str(row.day))
+        counts_by_day[day] = row.sessions
+
+    sessions_per_day = [
+        TeamAnalyticsDay(
+            date=window_start + timedelta(days=offset),
+            sessions=counts_by_day.get(window_start + timedelta(days=offset), 0),
+        )
+        for offset in range(30)
+    ]
+
+    # ── Top players by best single-session score ─────────────────────────
+    best_score = func.max(LeagueSession.points_earned)
+    top_rows = (
+        await db.execute(
+            select(
+                LeaguePlayer.nickname,
+                LeaguePlayer.avatar_seed,
+                best_score.label("best"),
+            )
+            .join(LeagueSession, LeagueSession.player_id == LeaguePlayer.id)
+            .where(
+                LeagueSession.team_id == team.id,
+                LeaguePlayer.is_test.is_(False),
+            )
+            .group_by(LeaguePlayer.id, LeaguePlayer.nickname, LeaguePlayer.avatar_seed)
+            .order_by(best_score.desc())
+            .limit(5)
+        )
+    ).all()
+
+    return TeamAnalyticsResponse(
+        team_code=team.code,
+        team_name=team.name,
+        total_sessions=totals.sessions,
+        unique_players=totals.players,
+        avg_score=round(float(totals.avg_score), 2),
+        sessions_per_day=sessions_per_day,
+        top_players=[
+            TeamAnalyticsTopPlayer(
+                nickname=row.nickname,
+                avatar_seed=row.avatar_seed,
+                best_score=float(row.best),
+            )
+            for row in top_rows
+        ],
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════════════

@@ -278,6 +278,40 @@ class GlobalStatsResponse(BaseModel):
     total_teams: int = Field(..., description="Total teams created", ge=0)
 
 
+# ── Team Analytics Schemas ───────────────────────────────────────────────────
+
+
+class TeamAnalyticsDay(BaseModel):
+    """Session count for a single day in the 30-day activity window."""
+
+    date: date = Field(..., description="UTC calendar date")
+    sessions: int = Field(..., description="Sessions played on this date", ge=0)
+
+
+class TeamAnalyticsTopPlayer(BaseModel):
+    """A top player entry in team analytics."""
+
+    nickname: str = Field(..., description="Player display name")
+    avatar_seed: str = Field(..., description="Seed for avatar generation")
+    best_score: float = Field(..., description="Highest single-session points", ge=0)
+
+
+class TeamAnalyticsResponse(BaseModel):
+    """Aggregated kiosk analytics for a team (test accounts excluded)."""
+
+    team_code: str = Field(..., description="Team join code")
+    team_name: str = Field(..., description="Team display name")
+    total_sessions: int = Field(..., description="Total sessions played by the team", ge=0)
+    unique_players: int = Field(..., description="Distinct players with at least one session", ge=0)
+    avg_score: float = Field(..., description="Average session points across all team sessions", ge=0)
+    sessions_per_day: list[TeamAnalyticsDay] = Field(
+        ..., description="Daily session counts for the last 30 days, oldest first"
+    )
+    top_players: list[TeamAnalyticsTopPlayer] = Field(
+        ..., description="Top players by best single-session score"
+    )
+
+
 # ── Share Schemas ───────────────────────────────────────────────────────────
 
 

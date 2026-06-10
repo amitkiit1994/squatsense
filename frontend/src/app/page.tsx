@@ -1,82 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
 import Link from "next/link";
 import KinelyBar from "@/components/KinelyBar";
-
-/* ------------------------------------------------------------------ */
-/*  Waitlist form (reused in hero + bottom CTA)                       */
-/* ------------------------------------------------------------------ */
-function WaitlistForm({ id, glow }: { id: string; glow?: boolean }) {
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
-  const [errorMsg, setErrorMsg] = useState("");
-
-  async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!email) return;
-    setStatus("submitting");
-    setErrorMsg("");
-
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      const resp = await fetch(`${apiUrl}/api/v1/waitlist/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      if (!resp.ok) {
-        const data = await resp.json().catch(() => null);
-        throw new Error(data?.detail || "Something went wrong");
-      }
-
-      setStatus("success");
-      setEmail("");
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
-      setStatus("error");
-    }
-  }
-
-  if (status === "success") {
-    return (
-      <div className="glass-card rounded-xl border border-emerald-500/30 px-6 py-4 text-emerald-300">
-        <p className="font-semibold">You&apos;re on the list!</p>
-        <p className="mt-1 text-sm text-emerald-400/80">
-          We&apos;ll notify you as soon as FreeForm Fitness is ready. Check your inbox for a confirmation.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <form onSubmit={handleSubmit} id={id} className="flex flex-col gap-3 sm:flex-row">
-        <input
-          type="email"
-          required
-          placeholder="Enter your email"
-          value={email}
-          onChange={(e) => { setEmail(e.target.value); if (status === "error") setStatus("idle"); }}
-          className="flex-1 rounded-xl border border-zinc-700/50 bg-zinc-900/80 px-4 py-3.5 text-base text-zinc-100 placeholder:text-zinc-500 outline-none backdrop-blur-sm transition focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50 sm:text-sm"
-        />
-        <button
-          type="submit"
-          disabled={status === "submitting"}
-          className={`rounded-xl bg-orange-600 px-7 py-3.5 text-sm font-semibold text-white transition hover:bg-orange-500 disabled:opacity-60 disabled:cursor-not-allowed ${glow ? "animate-glow-pulse" : ""}`}
-        >
-          {status === "submitting" ? "Joining..." : "Join Waitlist"}
-        </button>
-      </form>
-      {status === "error" && errorMsg && (
-        <p className="mt-2 text-xs text-red-400">{errorMsg}</p>
-      )}
-    </div>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /*  Helper components                                                 */
@@ -155,31 +80,9 @@ function MovementCard({ name, children }: { name: string; children: React.ReactN
 /* ------------------------------------------------------------------ */
 /*  Page                                                              */
 /* ------------------------------------------------------------------ */
-function InviteBanner() {
-  const searchParams = useSearchParams();
-  const denied = searchParams.get("invite") === "denied";
-  if (!denied) return null;
-  return (
-    <div className="relative z-20 border-b border-amber-500/30 bg-amber-500/10 px-4 py-4 text-center text-sm text-amber-300">
-      <p>
-        Registration is currently invite-only. Join the waitlist and we&apos;ll
-        let you know when your spot opens up.
-      </p>
-      <div className="mx-auto mt-3 max-w-md">
-        <WaitlistForm id="invite-denied-form" />
-      </div>
-    </div>
-  );
-}
-
-export default function WaitlistPage() {
+export default function HomePage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-zinc-950 text-zinc-50 bg-grid">
-
-      {/* ── Invite-denied banner ────────────────────────────────── */}
-      <Suspense>
-        <InviteBanner />
-      </Suspense>
 
       {/* ── Navigation ──────────────────────────────────────────── */}
       <nav className="relative z-20 mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">

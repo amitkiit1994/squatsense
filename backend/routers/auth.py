@@ -218,11 +218,12 @@ async def register(
             detail="A user with this email already exists",
         )
 
-    # Invite-only: check email allowlist (empty list = open registration)
+    # Operational safety valve: email allowlist (empty list = open registration).
+    # Registration is open beta -- this copy must never claim invite-only.
     if settings.allowed_emails_list and body.email.lower() not in settings.allowed_emails_list:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Registration is currently invite-only. Join the waitlist to request access.",
+            detail="Registration is temporarily unavailable for this email address. Please try again later.",
         )
 
     hashed_pw = _hash_password(body.password)

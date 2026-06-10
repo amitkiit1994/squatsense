@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoading } = useAuth();
+  const { login } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,7 +33,9 @@ export default function LoginPage() {
     }
   }
 
-  const loading = submitting || isLoading;
+  // Only the user's own submit should show the busy state. Gating on the
+  // useAuth session check here bakes the spinner into the prerendered HTML.
+  const loading = submitting;
 
   return (
     <div className="w-full max-w-md">

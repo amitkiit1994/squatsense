@@ -87,7 +87,7 @@ function BetaAccessGranted({ name, onContinue }: { name: string; onContinue: () 
 
 function RegisterForm() {
   const router = useRouter();
-  const { register, isLoading } = useAuth();
+  const { register } = useAuth();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -127,11 +127,6 @@ function RegisterForm() {
       // Show the beta access confirmation step
       setShowBetaConfirmation(true);
     } catch (err) {
-      if (err instanceof ApiResponseError && err.status === 403) {
-        // Not on the invite list — send them to the waitlist
-        router.push("/?invite=denied");
-        return;
-      }
       if (err instanceof ApiResponseError && err.status === 404) {
         // The account was created and tokens stored, but the profile read
         // lagged behind (read-after-write race). Treat as success — the
@@ -154,7 +149,9 @@ function RegisterForm() {
     router.push("/onboarding/profile");
   }
 
-  const loading = submitting || isLoading;
+  // Only the user's own submit should show the busy state. Gating on the
+  // useAuth session check here bakes the spinner into the prerendered HTML.
+  const loading = submitting;
 
   // Show beta confirmation after successful registration
   if (showBetaConfirmation) {

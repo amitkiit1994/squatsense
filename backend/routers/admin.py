@@ -13,6 +13,7 @@ from backend.config import settings
 from backend.deps import get_db
 from backend.models.contact import ContactInquiry
 from backend.models.gym_inquiry import GymInquiry
+from backend.models.payment_event import PaymentEvent
 from backend.models.user import User
 from backend.models.waitlist_email import WaitlistEmail
 from backend.rate_limit import limiter
@@ -21,6 +22,7 @@ from backend.schemas.admin import (
     ContactInquiryListItem,
     GymInquiryListItem,
     LeadCounts,
+    PaymentEventListItem,
 )
 
 logger = logging.getLogger(__name__)
@@ -28,6 +30,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 _LATEST_LIMIT = 50
+_PAYMENT_EVENTS_LIMIT = 20
 
 
 # ── Auth ────────────────────────────────────────────────────────────────────
@@ -81,6 +84,9 @@ async def get_leads(
     user_count = (
         await db.execute(select(func.count()).select_from(User))
     ).scalar_one()
+    payment_event_count = (
+        await db.execute(select(func.count()).select_from(PaymentEvent))
+    ).scalar_one()
 
     gym_rows = (
         (
@@ -104,13 +110,25 @@ async def get_leads(
         .scalars()
         .all()
     )
+    payment_event_rows = (
+        (
+            await db.execute(
+                select(PaymentEvent)
+                .order_by(PaymentEvent.created_at.desc())
+                .limit(_PAYMENT_EVENTS_LIMIT)
+            )
+        )
+        .scalars()
+        .all()
+    )
 
     logger.info(
-        "[ADMIN] Leads requested: gyms=%d contacts=%d waitlist=%d users=%d",
+        "[ADMIN] Leads requested: gyms=%d contacts=%d waitlist=%d users=%d payments=%d",
         gym_count,
         contact_count,
         waitlist_count,
         user_count,
+        payment_event_count,
     )
 
     return AdminLeadsResponse(
@@ -119,6 +137,7 @@ async def get_leads(
             contact_inquiries=contact_count,
             waitlist_emails=waitlist_count,
             users=user_count,
+            payment_events=payment_event_count,
         ),
         gym_inquiries=[
             GymInquiryListItem(
@@ -146,5 +165,21 @@ async def get_leads(
                 created_at=row.created_at,
             )
             for row in contact_rows
+        ],
+        payment_events=[
+            PaymentEventListItem(
+                id=row.id,
+                source=row.source,
+                event_type=row.event_type,
+                razorpay_order_id=row.razorpay_order_id,
+                razorpay_payment_id=row.razorpay_payment_id,
+                plan_id=row.plan_id,
+                billing=row.billing,
+                amount=row.amount,
+                currency=row.currency,
+                payer_email=row.payer_email,
+                created_at=row.created_at,
+            )
+            for row in payment_event_rows
         ],
     )

@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.config import settings
 from backend.models.contact import ContactInquiry
 from backend.models.gym_inquiry import GymInquiry
+from backend.models.payment_event import PaymentEvent
 from backend.models.user import User
 from backend.models.waitlist_email import WaitlistEmail
 
@@ -69,9 +70,11 @@ async def test_leads_empty_database(
         "contact_inquiries": 0,
         "waitlist_emails": 0,
         "users": 0,
+        "payment_events": 0,
     }
     assert data["gym_inquiries"] == []
     assert data["contact_inquiries"] == []
+    assert data["payment_events"] == []
 
 
 async def test_leads_counts_and_ordering(
@@ -108,6 +111,20 @@ async def test_leads_counts_and_ordering(
     db.add(WaitlistEmail(email="wait1@example.com"))
     db.add(WaitlistEmail(email="wait2@example.com"))
     db.add(User(email="user1@example.com"))
+    db.add(
+        PaymentEvent(
+            source="traqgym-cloud",
+            event_type="payment.captured",
+            razorpay_order_id="order_test123",
+            razorpay_payment_id="pay_test123",
+            plan_id="growth",
+            billing="monthly",
+            amount=499900,
+            currency="INR",
+            payer_email="owner@gym.com",
+            created_at=_BASE_TS,
+        )
+    )
     await db.commit()
 
     resp = await client.get(
@@ -121,6 +138,7 @@ async def test_leads_counts_and_ordering(
         "contact_inquiries": 2,
         "waitlist_emails": 2,
         "users": 1,
+        "payment_events": 1,
     }
 
     # Newest first
@@ -152,6 +170,21 @@ async def test_leads_counts_and_ordering(
     assert newest_contact["number_of_offices"] == "2-5"
     assert newest_contact["estimated_employees"] == "51-200"
     assert newest_contact["message"] == "Contact 1"
+
+    # Field completeness on a payment event row
+    assert len(data["payment_events"]) == 1
+    event = data["payment_events"][0]
+    assert event["source"] == "traqgym-cloud"
+    assert event["event_type"] == "payment.captured"
+    assert event["razorpay_order_id"] == "order_test123"
+    assert event["razorpay_payment_id"] == "pay_test123"
+    assert event["plan_id"] == "growth"
+    assert event["billing"] == "monthly"
+    assert event["amount"] == 499900
+    assert event["currency"] == "INR"
+    assert event["payer_email"] == "owner@gym.com"
+    assert event["id"]
+    assert event["created_at"]
 
 
 async def test_leads_lists_capped_at_50(

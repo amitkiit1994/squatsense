@@ -18,6 +18,9 @@ class LeadCounts(BaseModel):
     )
     waitlist_emails: int = Field(..., ge=0, description="Total waitlist signups")
     users: int = Field(..., ge=0, description="Total registered users")
+    payment_events: int = Field(
+        ..., ge=0, description="Total recorded payment events"
+    )
 
 
 class GymInquiryListItem(BaseModel):
@@ -53,6 +56,26 @@ class ContactInquiryListItem(BaseModel):
     created_at: datetime = Field(..., description="Submission timestamp")
 
 
+class PaymentEventListItem(BaseModel):
+    """A single recorded payment event row."""
+
+    id: uuid.UUID = Field(..., description="Payment event ID")
+    source: str = Field(..., description="Reporting service identifier")
+    event_type: str = Field(..., description="Payment lifecycle event type")
+    razorpay_order_id: str = Field(..., description="Razorpay order ID")
+    razorpay_payment_id: Optional[str] = Field(
+        default=None, description="Razorpay payment ID"
+    )
+    plan_id: Optional[str] = Field(default=None, description="Plan identifier")
+    billing: Optional[str] = Field(default=None, description="Billing period")
+    amount: Optional[int] = Field(default=None, description="Amount in paise")
+    currency: str = Field(..., description="ISO currency code")
+    payer_email: Optional[str] = Field(
+        default=None, description="Payer email address"
+    )
+    created_at: datetime = Field(..., description="Recording timestamp")
+
+
 class AdminLeadsResponse(BaseModel):
     """Lead counts plus the latest inquiries, newest first."""
 
@@ -62,4 +85,7 @@ class AdminLeadsResponse(BaseModel):
     )
     contact_inquiries: list[ContactInquiryListItem] = Field(
         ..., description="Latest 50 contact inquiries, newest first"
+    )
+    payment_events: list[PaymentEventListItem] = Field(
+        ..., description="Latest 20 payment events, newest first"
     )

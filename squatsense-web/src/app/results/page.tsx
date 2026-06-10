@@ -508,7 +508,9 @@ export default function ResultsPage() {
         <div className="fade-in-up w-full max-w-lg lg:max-w-xl mb-4">
           <div className="px-4 py-3 bg-[#ffbf00]/10 border border-[#ffbf00]/30 rounded-xl text-center">
             <p className="text-[#ffbf00] text-sm font-mono">
-              Session not saved: {results.save_error}
+              {results.save_error === "At least one rep score is required"
+                ? "No reps were detected, so this session was not saved to the leaderboard."
+                : `Session not saved: ${results.save_error}`}
             </p>
             <p className="text-[#888888] text-xs mt-1">
               Results below are from this device only.

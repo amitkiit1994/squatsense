@@ -51,6 +51,12 @@ class Settings(BaseSettings):
     # Empty (default) = admin endpoints disabled (return 503).
     ADMIN_API_KEY: str = ""
 
+    # ── Internal services ─────────────────────────────────────────────
+    # Shared secret for the X-Internal-Key header on internal endpoints
+    # (e.g. /api/v1/payment-events, called server-to-server by
+    # traqgym-cloud). Empty (default) = internal endpoints disabled (503).
+    INTERNAL_API_KEY: str = ""
+
     # ── Registration allowlist ────────────────────────────────────────
     # Comma-separated emails allowed to register. Empty = open registration.
     ALLOWED_EMAILS: str = ""

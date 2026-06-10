@@ -135,6 +135,7 @@ def create_app() -> FastAPI:
         league,
         league_auth,
         live,
+        payment_events,
         sessions,
         users,
         waitlist,
@@ -155,6 +156,7 @@ def create_app() -> FastAPI:
     app.include_router(league_auth.router, prefix=api_prefix)
     app.include_router(league.router, prefix=api_prefix)
     app.include_router(admin.router, prefix=api_prefix)
+    app.include_router(payment_events.router, prefix=api_prefix)
 
     @app.get("/api/v1/health", tags=["ops"])
     async def health():

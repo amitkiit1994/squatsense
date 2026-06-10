@@ -28,7 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useCamera } from "@/hooks/useCamera";
 import { useWebSocket } from "@/hooks/useWebSocket";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiResponseError } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // MediaPipe Pose Connections (key joints)
@@ -294,6 +294,9 @@ function WorkoutContent() {
 
   // Session creation error state
   const [sessionError, setSessionError] = useState<string | null>(null);
+
+  // Set when the backend discarded an empty (zero-rep) session on end
+  const [workoutDiscarded, setWorkoutDiscarded] = useState(false);
 
   // Skeleton overlay canvas ref
   const skeletonCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -826,17 +829,30 @@ function WorkoutContent() {
     await stopAndWaitForSummary(10_000);
     stopCamera();
 
+    // The backend deletes zero-rep sessions and returns 204 No Content, which
+    // apiFetch surfaces as `undefined`. Show an honest notice and go to the
+    // dashboard instead of navigating to a session page that no longer exists.
+    const handleDiscarded = () => {
+      setWorkoutDiscarded(true);
+      setTimeout(() => router.push("/dashboard"), 2500);
+    };
+
     try {
-      const result = await apiFetch<{ id?: string; discarded?: boolean }>(`/sessions/${sessionId}/end`, {
-        method: "POST",
-      });
-      if (result.discarded) {
-        // No reps recorded — session was deleted server-side
-        router.push("/dashboard");
+      const result = await apiFetch<{ id?: string; discarded?: boolean } | undefined>(
+        `/sessions/${sessionId}/end`,
+        { method: "POST" },
+      );
+      if (!result || result.discarded) {
+        handleDiscarded();
       } else {
         router.push(`/session/${result.id ?? sessionId}`);
       }
     } catch (error) {
+      if (error instanceof ApiResponseError && error.status === 404) {
+        // Session already gone server-side — treat the same as discarded
+        handleDiscarded();
+        return;
+      }
       console.error("Failed to end workout:", error);
       router.push(`/session/${sessionId}`);
     }
@@ -1049,6 +1065,28 @@ function WorkoutContent() {
 
   return (
     <div className="flex min-h-screen flex-col bg-black text-white">
+      {/* Discarded workout notice (zero reps — nothing was saved) */}
+      {workoutDiscarded && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 px-6">
+          <div className="flex max-w-sm flex-col items-center gap-3 text-center">
+            <AlertTriangle className="h-10 w-10 text-amber-400" />
+            <p className="text-lg font-semibold">
+              No reps recorded - this workout was not saved.
+            </p>
+            <p className="text-sm text-zinc-400">
+              Taking you back to your dashboard.
+            </p>
+            <Button
+              variant="outline"
+              className="mt-2 border-white/30 text-white"
+              onClick={() => router.push("/dashboard")}
+            >
+              Go to Dashboard
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Hidden canvas for frame capture (used by useCamera) */}
       <canvas ref={captureCanvasRef} className="hidden" />
 

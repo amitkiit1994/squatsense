@@ -1,0 +1,33 @@
+# SquatSense — llms.txt
+
+> SquatSense is a free, AI-powered 30-second squat game. It uses real-time camera-based pose detection to score your form and count reps. Play solo on any device or compete on gym/office kiosk leaderboards. Part of the Kinely ecosystem (kinely.ai).
+
+## Product
+- Free 30-second squat blitz game
+- Real-time AI pose detection via camera (no hardware/wearables)
+- Scores depth, stability, tempo for every rep
+- Personal play mode (any device) + Arena/Kiosk mode (gym/office TV)
+- Movement Points ranking system (Bronze → Silver → Gold → Elite)
+- Team leaderboards for offices and gyms
+
+## Technology
+- Client-side MediaPipe Tasks Vision for pose detection
+- WebSocket real-time biomechanics processing
+- Next.js 16 + React 19 frontend
+- FastAPI + PostgreSQL backend (shared with FreeForm Fitness)
+
+## Ecosystem
+SquatSense is one of three products in the Kinely ecosystem:
+- **Kinely** (kinely.ai) — the AI operating system for fitness
+- **TraqGym** (traqgym.com) — gym management + AI agents
+- **FreeForm Fitness** (freeformfitness.ai) — AI strength training with per-rep biomechanics
+- **SquatSense** (squatsense.ai) — the 30-second squat game (this product)
+
+## Company
+Kinely · Mumbai, India · Early-stage, first paying customer live
+Founded by Robin Carruthers (CEO) and Amit Kumar Das (CTO)
+
+## Links
+- Website: https://squatsense.ai
+- Parent: https://kinely.ai
+- Demo: https://kinely.ai/app

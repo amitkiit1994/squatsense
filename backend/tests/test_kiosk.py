@@ -1,14 +1,12 @@
-from __future__ import annotations
-
 """Tests for the kiosk pairing flow.
 
 Covers: kiosk registration, queue join, pending poll, profanity rejection,
 and duplicate-in-queue rejection.
 """
 
-from httpx import AsyncClient
+from __future__ import annotations
 
-from backend.routers.league_auth import _create_league_token
+from httpx import AsyncClient
 
 
 async def _create_team(client: AsyncClient, name: str = "TestTeam", *, token: str | None = None) -> str:
@@ -64,7 +62,7 @@ async def test_join_kiosk_queue(client: AsyncClient) -> None:
     data = resp.json()
     assert data["status"] == "queued"
     assert data["queue_position"] == 1
-    assert "access_token" in data
+    assert "access_token" not in data
 
 
 async def test_kiosk_pending(client: AsyncClient) -> None:

@@ -228,7 +228,6 @@ export interface KioskJoinResponse {
   status: string;
   player_id: string;
   nickname: string;
-  access_token: string;
   queue_position: number;
 }
 
@@ -325,6 +324,25 @@ export function upgradeAccount(token: string, email: string, password: string) {
     body: JSON.stringify({ email, password }),
     token,
   });
+}
+
+// ── Share ───────────────────────────────────────────────────────────────
+
+export interface SessionShareData {
+  session_id: string;
+  nickname: string;
+  rank: string;
+  points_earned: number;
+  reps_counted: number;
+  reps_total: number;
+  avg_quality: number;
+  max_combo: number;
+  perfect_reps: number;
+  created_at: string;
+}
+
+export function getSessionShare(sessionId: string) {
+  return apiFetch<SessionShareData>(`/api/v1/league/sessions/${sessionId}/share`);
 }
 
 // ── Stats ───────────────────────────────────────────────────────────────

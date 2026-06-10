@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { ApiResponseError } from "@/lib/api";
@@ -10,8 +10,84 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 
-export default function RegisterPage() {
+/* ------------------------------------------------------------------ */
+/*  Beta Access Granted confirmation step                             */
+/* ------------------------------------------------------------------ */
+
+function BetaAccessGranted({ name, onContinue }: { name: string; onContinue: () => void }) {
+  return (
+    <div className="w-full max-w-md">
+      <div className="mb-8 text-center">
+        <img src="/logo.png" alt="FreeForm Fitness" className="mx-auto h-48 w-auto" />
+      </div>
+
+      <Card className="glass-card gradient-border border-zinc-800">
+        <CardContent className="pt-8 pb-8 text-center">
+          {/* Checkmark icon */}
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-8 w-8 text-emerald-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+
+          <h2 className="text-xl font-bold text-white">Beta Access Granted</h2>
+          <p className="mt-2 text-sm text-zinc-400">
+            Welcome{name ? `, ${name}` : ""}. You are one of the first to experience
+            AI-powered movement analysis.
+          </p>
+
+          <div className="mx-auto mt-6 max-w-xs space-y-2 text-left">
+            <div className="flex items-start gap-2 text-sm text-zinc-300">
+              <svg xmlns="http://www.w3.org/2000/svg" className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Real-time form scoring on every rep
+            </div>
+            <div className="flex items-start gap-2 text-sm text-zinc-300">
+              <svg xmlns="http://www.w3.org/2000/svg" className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Biomechanical analysis with 33 landmarks
+            </div>
+            <div className="flex items-start gap-2 text-sm text-zinc-300">
+              <svg xmlns="http://www.w3.org/2000/svg" className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              No wearables or hardware needed
+            </div>
+          </div>
+
+          <Button
+            size="lg"
+            className="mt-8 w-full"
+            onClick={onContinue}
+          >
+            Set Up Your Profile
+          </Button>
+
+          <p className="mt-3 text-xs text-zinc-500">
+            Takes about 2 minutes. You can skip and do this later.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Registration page                                                 */
+/* ------------------------------------------------------------------ */
+
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { register, isLoading } = useAuth();
 
   const [name, setName] = useState("");
@@ -20,6 +96,10 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showBetaConfirmation, setShowBetaConfirmation] = useState(false);
+
+  // Read plan from query params for Pro CTA from pricing page
+  const plan = searchParams.get("plan");
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -44,11 +124,15 @@ export default function RegisterPage() {
       // Store name for pre-filling the profile onboarding step
       try {
         localStorage.setItem("onboarding_name", name);
+        if (plan) {
+          localStorage.setItem("selected_plan", plan);
+        }
       } catch {
         // localStorage not available
       }
 
-      router.push("/onboarding/profile");
+      // Show the beta access confirmation step
+      setShowBetaConfirmation(true);
     } catch (err) {
       if (err instanceof ApiResponseError && err.status === 403) {
         // Not on the invite list — send them to the waitlist
@@ -61,7 +145,21 @@ export default function RegisterPage() {
     }
   }
 
+  function handleContinueToOnboarding() {
+    router.push("/onboarding/profile");
+  }
+
   const loading = submitting || isLoading;
+
+  // Show beta confirmation after successful registration
+  if (showBetaConfirmation) {
+    return (
+      <BetaAccessGranted
+        name={name.split(" ")[0]}
+        onContinue={handleContinueToOnboarding}
+      />
+    );
+  }
 
   return (
     <div className="w-full max-w-md">
@@ -74,7 +172,9 @@ export default function RegisterPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-white">Create your account</CardTitle>
           <CardDescription className="text-zinc-400">
-            Get started with AI-powered movement intelligence
+            {plan === "pro"
+              ? "Sign up to start your Pro trial"
+              : "Get started with AI-powered movement intelligence"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -187,7 +287,7 @@ export default function RegisterPage() {
           </form>
 
           <p className="mt-4 text-center text-xs text-zinc-500">
-            Registration is invite-only during early access.
+            Free during beta. No credit card required.
           </p>
 
           <div className="mt-4 text-center text-sm text-zinc-400">
@@ -202,5 +302,13 @@ export default function RegisterPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
   );
 }

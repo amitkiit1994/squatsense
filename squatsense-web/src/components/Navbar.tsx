@@ -60,6 +60,17 @@ export default function Navbar() {
             Leaderboard
           </Link>
 
+          <Link
+            href="/for-offices"
+            className={`hidden sm:inline-flex px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+              pathname === "/for-offices"
+                ? "text-[#06b6d4] bg-[#06b6d4]/10"
+                : "text-[#888] hover:text-[#f0f0f0]"
+            }`}
+          >
+            For Offices
+          </Link>
+
           {authed ? (
             <>
               <Link

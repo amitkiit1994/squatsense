@@ -91,10 +91,19 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="FreeForm Fitness API",
+        title="Kinely Movement Intelligence API",
         version="1.0.0",
-        description="Movement Intelligence Platform API",
+        description=(
+            "Shared backend for SquatSense (squat game) and FreeForm Fitness "
+            "(AI coaching). Provides real-time biomechanical analysis, league "
+            "management, session tracking, and AI-powered coaching — all via camera, "
+            "no wearables required."
+        ),
         lifespan=lifespan,
+        docs_url="/api/docs",
+        redoc_url="/api/redoc",
+        openapi_url="/api/openapi.json",
+        contact={"name": "Kinely", "url": "https://kinely.ai"},
     )
 
     # Rate limiting
@@ -120,6 +129,7 @@ def create_app() -> FastAPI:
         auth,
         coach,
         exercises,
+        gym_inquiry,
         league,
         league_auth,
         live,
@@ -138,10 +148,11 @@ def create_app() -> FastAPI:
     app.include_router(analytics.router, prefix=api_prefix)
     app.include_router(coach.router, prefix=api_prefix)
     app.include_router(waitlist.router, prefix=api_prefix)
+    app.include_router(gym_inquiry.router, prefix=api_prefix)
     app.include_router(league_auth.router, prefix=api_prefix)
     app.include_router(league.router, prefix=api_prefix)
 
-    @app.get("/api/v1/health")
+    @app.get("/api/v1/health", tags=["ops"])
     async def health():
         from sqlalchemy import text
         from backend.db.engine import AsyncSessionLocal
@@ -156,6 +167,14 @@ def create_app() -> FastAPI:
                 status_code=503,
                 content={"status": "degraded", "database": "unreachable"},
             )
+
+    @app.get("/api/v1/version", tags=["ops"])
+    async def version():
+        return {
+            "api": "1.0.0",
+            "products": ["squatsense", "freeform-fitness"],
+            "parent": "kinely",
+        }
 
     return app
 

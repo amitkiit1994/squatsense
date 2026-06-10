@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { isLoggedIn } from "@/lib/auth";
+import KinelyBar from "@/components/KinelyBar";
 
 const steps = [
   {
@@ -52,10 +53,10 @@ export default function LandingPage() {
               START SQUATTING
             </Link>
             <Link
-              href="/setup"
+              href="/for-offices"
               className="border-2 border-[#06b6d4] text-[#06b6d4] font-bold text-base sm:text-lg px-8 sm:px-10 py-3 sm:py-4 rounded-xl hover:bg-[#06b6d4]/10 transition-colors"
             >
-              SET UP YOUR OFFICE
+              FOR OFFICES
             </Link>
           </div>
         </div>
@@ -101,6 +102,8 @@ export default function LandingPage() {
           START SQUATTING
         </Link>
       </section>
+
+      <KinelyBar current="squatsense" />
     </div>
   );
 }

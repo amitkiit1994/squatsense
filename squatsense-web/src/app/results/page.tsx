@@ -394,10 +394,10 @@ export default function ResultsPage() {
     ctx.fillText("squatsense.ai", W / 2, 940);
     ctx.shadowBlur = 0;
 
-    // Tagline
-    ctx.fillStyle = "#888888";
-    ctx.font = "400 20px 'Inter', sans-serif";
-    ctx.fillText("Move More. Move Better.", W / 2, 980);
+    // CTA
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "600 22px 'Inter', sans-serif";
+    ctx.fillText("Beat my score at squatsense.ai", W / 2, 980);
 
     // Bottom accent line
     ctx.fillStyle = gradient;
@@ -416,44 +416,78 @@ export default function ResultsPage() {
   const handleDownload = useCallback(() => {
     const canvas = shareCanvasRef.current;
     if (!canvas) return;
+    trackEvent("share_download", { points: results?.points_earned });
     const link = document.createElement("a");
     link.download = `squatsense-${results?.points_earned ?? 0}pts.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
   }, [results]);
 
-  // ── Share ────────────────────────────────────────────────────────────
-  const handleShare = useCallback(async () => {
-    const canvas = shareCanvasRef.current;
-    if (!canvas) return;
+  // ── Share helpers ─────────────────────────────────────────────────────
+  const [copyFeedback, setCopyFeedback] = useState(false);
 
-    if (shareSupported) {
+  const shareUrl = useMemo(() => {
+    const sessionId = results?.session_id;
+    if (!sessionId) return "https://squatsense.ai";
+    return `https://squatsense.ai/share/${sessionId}`;
+  }, [results]);
+
+  const shareText = useMemo(() => {
+    const pts = results?.points_earned ?? 0;
+    return `I scored ${pts.toFixed(1)} Movement Points in 30 seconds on SquatSense! Can you beat that?`;
+  }, [results]);
+
+  const handleShare = useCallback(() => {
+    const canvas = shareCanvasRef.current;
+    if (!canvas || !shareSupported) return;
+
+    trackEvent("share_native", { points: results?.points_earned });
+
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      const file = new File([blob], "squatsense-results.png", {
+        type: "image/png",
+      });
       try {
-        canvas.toBlob(async (blob) => {
-          if (!blob) return;
-          const file = new File([blob], "squatsense-results.png", {
-            type: "image/png",
-          });
+        if (
+          typeof navigator.canShare === "function" &&
+          !navigator.canShare({ files: [file] })
+        ) {
+          // Browser supports share but not file payloads — share text + link only
           await navigator.share({
             title: "SquatSense Results",
-            text: `I scored ${results?.points_earned ?? 0} Movement Points in 30 seconds! Can you beat that?`,
-            files: [file],
+            text: `${shareText}\n${shareUrl}`,
           });
-        }, "image/png");
+          return;
+        }
+        await navigator.share({
+          title: "SquatSense Results",
+          text: `${shareText}\n${shareUrl}`,
+          files: [file],
+        });
       } catch {
-        // Share cancelled or failed — fallback to copy
-        await navigator.clipboard.writeText(
-          `I scored ${results?.points_earned ?? 0} Movement Points on SquatSense! squatsense.ai`
-        );
+        // Share cancelled or failed
       }
-    } else {
-      // Fallback: copy text
-      await navigator.clipboard.writeText(
-        `I scored ${results?.points_earned ?? 0} Movement Points on SquatSense! squatsense.ai`
-      );
-      alert("Link copied to clipboard!");
+    }, "image/png");
+  }, [results, shareSupported, shareText, shareUrl]);
+
+  const handleWhatsAppShare = useCallback(() => {
+    trackEvent("share_whatsapp", { points: results?.points_earned });
+    const text = encodeURIComponent(`${shareText}\n\n${shareUrl}`);
+    window.open(`https://wa.me/?text=${text}`, "_blank");
+  }, [results, shareText, shareUrl]);
+
+  const handleCopyLink = useCallback(async () => {
+    trackEvent("share_copy_link", { points: results?.points_earned });
+    const text = `${shareText}\n${shareUrl}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 2000);
+    } catch {
+      // Clipboard API not available
     }
-  }, [results, shareSupported]);
+  }, [results, shareText, shareUrl]);
 
   // ── Loading state ────────────────────────────────────────────────────
   if (!loaded || !results) {
@@ -871,20 +905,55 @@ export default function ResultsPage() {
             style={{ aspectRatio: "1/1" }}
           />
         </div>
-        <div className="flex gap-3 mt-4 justify-center">
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          {shareSupported && (
+            <button
+              onClick={handleShare}
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-[#141414] text-[#06b6d4] font-semibold rounded-xl
+                         border border-[#2a2a2a] hover:border-[#06b6d4]/50 transition-colors cursor-pointer text-sm"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3" />
+                <circle cx="6" cy="12" r="3" />
+                <circle cx="18" cy="19" r="3" />
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+              </svg>
+              Share
+            </button>
+          )}
           <button
-            onClick={handleDownload}
-            className="px-6 py-3 bg-[#141414] text-white font-semibold rounded-xl
-                       border border-[#2a2a2a] hover:border-[#00ff88]/50 transition-colors cursor-pointer"
+            onClick={handleWhatsAppShare}
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-[#141414] text-[#25D366] font-semibold rounded-xl
+                       border border-[#2a2a2a] hover:border-[#25D366]/50 transition-colors cursor-pointer text-sm"
           >
-            Download
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+            </svg>
+            WhatsApp
           </button>
           <button
-            onClick={handleShare}
-            className="px-6 py-3 bg-[#141414] text-[#06b6d4] font-semibold rounded-xl
-                       border border-[#2a2a2a] hover:border-[#06b6d4]/50 transition-colors cursor-pointer"
+            onClick={handleCopyLink}
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-[#141414] text-white font-semibold rounded-xl
+                       border border-[#2a2a2a] hover:border-[#00ff88]/50 transition-colors cursor-pointer text-sm"
           >
-            {shareSupported ? "Share" : "Copy Link"}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+            </svg>
+            {copyFeedback ? "Copied!" : "Copy Link"}
+          </button>
+          <button
+            onClick={handleDownload}
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-[#141414] text-white font-semibold rounded-xl
+                       border border-[#2a2a2a] hover:border-[#00ff88]/50 transition-colors cursor-pointer text-sm"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Download
           </button>
         </div>
       </div>

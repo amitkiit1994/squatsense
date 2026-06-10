@@ -39,3 +39,4 @@ docs/
 # Deployment
 .vercel
 .env*.local
+tsconfig.tsbuildinfo

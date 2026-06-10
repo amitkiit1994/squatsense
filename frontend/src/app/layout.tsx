@@ -60,6 +60,29 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              "name": "FreeForm Fitness",
+              "url": "https://freeformfitness.ai",
+              "description": "Real-time AI-powered form scoring, fatigue detection, and coaching for strength training — using just your phone camera. No wearables needed.",
+              "applicationCategory": "HealthApplication",
+              "operatingSystem": "Web",
+              "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR", "description": "Free during beta" },
+              "creator": {
+                "@type": "Organization",
+                "name": "Kinely",
+                "url": "https://kinely.ai",
+                "sameAs": ["https://traqgym.com", "https://squatsense.ai"]
+              }
+            }),
+          }}
+        />
+      </head>
       <body className={`${inter.variable} font-sans antialiased bg-zinc-950 text-zinc-50`}>
         {children}
         <CookieConsent />

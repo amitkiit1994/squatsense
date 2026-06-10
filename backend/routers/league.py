@@ -28,6 +28,7 @@ from backend.schemas.league import (
     LeaderboardEntry,
     PlayerProfileResponse,
     SessionHistoryEntry,
+    SessionShareResponse,
     StartSessionRequest,
     StartSessionResponse,
     TeamResponse,
@@ -412,6 +413,46 @@ async def complete_session(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# SHARE
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+@router.get("/sessions/{session_id}/share", response_model=SessionShareResponse)
+async def get_session_share(
+    session_id: UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get public session data for shareable links. No auth required."""
+    result = await db.execute(
+        select(LeagueSession).where(LeagueSession.session_id == session_id)
+    )
+    session = result.scalar_one_or_none()
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
+
+    player = await db.get(LeaguePlayer, session.player_id)
+    if player is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Player not found"
+        )
+
+    return SessionShareResponse(
+        session_id=session_id,
+        nickname=player.nickname,
+        rank=player.rank,
+        points_earned=session.points_earned,
+        reps_counted=session.reps_counted,
+        reps_total=session.reps_total,
+        avg_quality=session.avg_quality,
+        max_combo=session.max_combo,
+        perfect_reps=session.perfect_reps,
+        created_at=session.created_at,
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # PROFILE
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -622,7 +663,6 @@ async def join_kiosk(
         "status": "queued",
         "player_id": str(player.id),
         "nickname": player.nickname,
-        "access_token": token,
         "queue_position": queue_position,
     }
 

@@ -6,28 +6,53 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-backend:
+    name: Backend Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: requirements-backend.txt
       - name: Install dependencies
         run: pip install -r requirements-backend.txt
       - name: Run tests
-        run: pytest backend/tests/ -v
+        run: pytest backend/tests/ -v --tb=short
         env:
           JWT_SECRET_KEY: test-secret-key-for-ci-minimum-32chars
 
-  test-frontend:
+  lint-backend:
+    name: Backend Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: requirements-backend.txt
+      - name: Install dependencies
+        run: pip install -r requirements-backend.txt ruff
+      - name: Ruff check
+        run: ruff check backend/ --select E,W,F,I --ignore E501
+
+  check-squatsense:
+    name: SquatSense Type Check + Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
+          cache-dependency-path: squatsense-web/package-lock.json
       - name: Install dependencies
         working-directory: squatsense-web
         run: npm ci
@@ -38,13 +63,52 @@ jobs:
         working-directory: squatsense-web
         run: npm run build
 
-  # Claude Code PR review — runs on PRs only, uses -p flag for non-interactive mode
-  # Produces structured findings as a PR comment
-  # To enable: add ANTHROPIC_API_KEY to repository secrets
+  check-freeform:
+    name: FreeForm Type Check + Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Type check
+        working-directory: frontend
+        run: npx tsc --noEmit
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+  security-scan:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Audit SquatSense
+        working-directory: squatsense-web
+        run: npm audit --audit-level=high || true
+      - name: Audit FreeForm
+        working-directory: frontend
+        run: npm audit --audit-level=high || true
+      - name: Check for secrets in code
+        run: |
+          if grep -rn "sk-[a-zA-Z0-9]\{20,\}" --include="*.py" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json" backend/ squatsense-web/src/ frontend/src/ 2>/dev/null; then
+            echo "::error::Possible API key found in source code"
+            exit 1
+          fi
+
   claude-review:
+    name: Claude Code Review
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    needs: [test-backend, test-frontend]
+    needs: [test-backend, lint-backend, check-squatsense, check-freeform]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -83,23 +147,52 @@ jobs:
             }
 
   deploy-backend:
-    needs: [test-backend, test-frontend]
+    name: Deploy Backend
+    needs: [test-backend, lint-backend, check-squatsense, check-freeform]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
       - name: Deploy to Railway
-        run: echo "TODO - Add railway deploy command"
-        # Example: railway up --service backend
-        # Requires RAILWAY_TOKEN secret
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "::warning::RAILWAY_TOKEN not set — skipping deploy"
+            exit 0
+          fi
+          npx @railway/cli up --service backend
 
-  deploy-frontend:
-    needs: [test-backend, test-frontend]
+  deploy-squatsense:
+    name: Deploy SquatSense
+    needs: [test-backend, lint-backend, check-squatsense, check-freeform]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
       - name: Deploy to Vercel
-        run: echo "TODO - Add vercel deploy command"
-        # Example: vercel deploy --prod
-        # Requires VERCEL_TOKEN secret
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::warning::VERCEL_TOKEN not set — skipping deploy"
+            exit 0
+          fi
+          npx vercel deploy --prod --token=$VERCEL_TOKEN squatsense-web/
+
+  deploy-freeform:
+    name: Deploy FreeForm
+    needs: [test-backend, lint-backend, check-squatsense, check-freeform]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::warning::VERCEL_TOKEN not set — skipping deploy"
+            exit 0
+          fi
+          npx vercel deploy --prod --token=$VERCEL_TOKEN frontend/

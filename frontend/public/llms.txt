@@ -1,0 +1,35 @@
+# FreeForm Fitness — llms.txt
+
+> FreeForm Fitness is an AI-powered strength training platform that provides real-time, per-rep biomechanical analysis using only a camera. No wearables, no hardware. Currently in beta with a free tier. Part of the Kinely ecosystem (kinely.ai).
+
+## Product
+- Real-time per-rep biomechanics from one camera
+- Scores depth, stability, symmetry, tempo, and ROM for every rep
+- 8 supported exercises (squat, deadlift, bench press, overhead press, row, pull-up, lunge, push-up)
+- AI fatigue modeling and load recommendations
+- AI coaching via OpenAI/Anthropic LLM integration
+- Adaptive programming based on performance data
+- Video upload analysis for async form review
+
+## Technology
+- Client-side MediaPipe Tasks Vision for pose detection
+- Python biomechanics engine with exercise-specific models
+- FastAPI + PostgreSQL backend (shared with SquatSense)
+- Next.js 16 + React 19 frontend
+- JWT auth
+
+## Ecosystem
+FreeForm Fitness is one of three products in the Kinely ecosystem:
+- **Kinely** (kinely.ai) — the AI operating system for fitness
+- **TraqGym** (traqgym.com) — gym management + AI agents
+- **FreeForm Fitness** (freeformfitness.ai) — AI strength training (this product)
+- **SquatSense** (squatsense.ai) — the 30-second squat game
+
+## Company
+Kinely · Mumbai, India · Early-stage, first paying customer live
+Founded by Robin Carruthers (CEO) and Amit Kumar Das (CTO)
+
+## Links
+- Website: https://freeformfitness.ai
+- Parent: https://kinely.ai
+- Demo: https://kinely.ai/app

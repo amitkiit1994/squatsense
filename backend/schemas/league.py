@@ -276,3 +276,21 @@ class GlobalStatsResponse(BaseModel):
     total_squats_today: int = Field(..., description="Total squats performed today across all players", ge=0)
     total_players: int = Field(..., description="Total registered players", ge=0)
     total_teams: int = Field(..., description="Total teams created", ge=0)
+
+
+# ── Share Schemas ───────────────────────────────────────────────────────────
+
+
+class SessionShareResponse(BaseModel):
+    """Public session data for shareable links (no auth required)."""
+
+    session_id: UUID = Field(..., description="Session UUID")
+    nickname: str = Field(..., description="Player display name")
+    rank: str = Field(..., description="Player rank at time of query")
+    points_earned: float = Field(..., description="Points earned in session", ge=0)
+    reps_counted: int = Field(..., description="Reps meeting quality threshold", ge=0)
+    reps_total: int = Field(..., description="Total reps attempted", ge=0)
+    avg_quality: float = Field(..., description="Average rep quality score", ge=0, le=100)
+    max_combo: int = Field(..., description="Longest quality rep streak", ge=0)
+    perfect_reps: int = Field(..., description="Reps scoring 90+", ge=0)
+    created_at: datetime = Field(..., description="Session timestamp")

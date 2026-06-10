@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import Link from "next/link";
+import KinelyBar from "@/components/KinelyBar";
 
 /* ------------------------------------------------------------------ */
 /*  Waitlist form (reused in hero + bottom CTA)                       */
@@ -158,8 +160,14 @@ function InviteBanner() {
   const denied = searchParams.get("invite") === "denied";
   if (!denied) return null;
   return (
-    <div className="relative z-20 border-b border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-300">
-      Registration is currently invite-only. Join the waitlist below and we&apos;ll let you know when your spot opens up.
+    <div className="relative z-20 border-b border-amber-500/30 bg-amber-500/10 px-4 py-4 text-center text-sm text-amber-300">
+      <p>
+        Registration is currently invite-only. Join the waitlist and we&apos;ll
+        let you know when your spot opens up.
+      </p>
+      <div className="mx-auto mt-3 max-w-md">
+        <WaitlistForm id="invite-denied-form" />
+      </div>
     </div>
   );
 }
@@ -173,6 +181,33 @@ export default function WaitlistPage() {
         <InviteBanner />
       </Suspense>
 
+      {/* ── Navigation ──────────────────────────────────────────── */}
+      <nav className="relative z-20 mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
+        <Link href="/" className="flex items-center gap-2">
+          <img src="/logo.png" alt="FreeForm Fitness" className="h-8 w-auto sm:h-10" />
+        </Link>
+        <div className="flex items-center gap-3 text-sm sm:gap-4">
+          <Link href="/pricing" className="text-zinc-400 hover:text-zinc-200 transition-colors">
+            Pricing
+          </Link>
+          <Link href="/for-gyms" className="hidden sm:inline text-zinc-400 hover:text-zinc-200 transition-colors">
+            For Gyms
+          </Link>
+          <Link
+            href="/login"
+            className="text-zinc-400 hover:text-zinc-200 transition-colors"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/register"
+            className="rounded-lg bg-orange-600 px-3.5 py-1.5 text-sm font-semibold text-white transition hover:bg-orange-500"
+          >
+            Sign up
+          </Link>
+        </div>
+      </nav>
+
       {/* ── Animated aurora background ───────────────────────────── */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="animate-aurora absolute -top-1/2 left-1/4 h-[300px] w-[300px] sm:h-[600px] sm:w-[600px] md:h-[800px] md:w-[800px] rounded-full bg-orange-600/8 blur-[80px] sm:blur-[120px] md:blur-[150px]" />
@@ -184,12 +219,12 @@ export default function WaitlistPage() {
       <section className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-4 pt-4 pb-16 text-center sm:px-6 sm:pt-8 sm:pb-28 md:pt-12">
         <img src="/logo.png" alt="FreeForm Fitness" className="animate-fade-in-up mb-0 h-36 w-auto sm:h-60" />
 
-        <div className="animate-fade-in-up mb-4 sm:mb-6 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/5 px-3 py-1 text-xs sm:text-sm sm:px-4 sm:py-1.5 text-orange-300 backdrop-blur-sm">
+        <div className="animate-fade-in-up mb-4 sm:mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 text-xs sm:text-sm sm:px-4 sm:py-1.5 text-emerald-300 backdrop-blur-sm">
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-400" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
           </span>
-          Coming Soon
+          Now in Beta
         </div>
 
         <h1 className="animate-fade-in-up delay-100 text-3xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl md:text-7xl">
@@ -206,19 +241,32 @@ export default function WaitlistPage() {
           bench press, overhead press, and more. No wearables. No hardware. Just your phone camera.
         </p>
 
-        <div className="animate-fade-in-up delay-300 mt-6 w-full max-w-md sm:mt-10">
-          <WaitlistForm id="hero-form" glow />
-          <p className="mt-3 text-xs text-zinc-500">
-            Join the waitlist for early access. No spam, ever.
+        <div className="animate-fade-in-up delay-300 mt-6 flex flex-col items-center gap-3 w-full max-w-md sm:mt-10">
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
+            <Link
+              href="/register"
+              className="rounded-xl bg-orange-600 px-7 py-3.5 text-center text-sm font-semibold text-white transition hover:bg-orange-500 animate-glow-pulse"
+            >
+              Start Free
+            </Link>
+            <Link
+              href="/pricing"
+              className="rounded-xl border border-zinc-700 bg-zinc-800/80 px-7 py-3.5 text-center text-sm font-semibold text-zinc-100 transition hover:bg-zinc-700"
+            >
+              See Pricing
+            </Link>
+          </div>
+          <p className="mt-1 text-xs text-zinc-500">
+            Free tier includes 2 sessions/week on squat, deadlift, and bench.
           </p>
-          <p className="mt-2 text-xs text-zinc-500">
-            Already invited?{" "}
-            <a
+          <p className="text-xs text-zinc-500">
+            Already have an account?{" "}
+            <Link
               href="/login"
               className="font-medium text-orange-400 hover:text-orange-300 transition-colors"
             >
               Sign in
-            </a>
+            </Link>
           </p>
         </div>
 
@@ -256,9 +304,9 @@ export default function WaitlistPage() {
           </p>
           <div className="mx-auto mt-8 grid max-w-3xl gap-3 sm:mt-14 sm:gap-5 sm:grid-cols-3">
             {[
-              { value: "80%", label: "of gym-goers have no form feedback" },
-              { value: "$60–150", label: "per session for a personal trainer" },
-              { value: "50%", label: "of injuries are from poor form" },
+              { value: "Guesswork", label: "load progression without objective feedback" },
+              { value: "$60–150", label: "typical cost per personal training session" },
+              { value: "Unseen", label: "form breakdown often goes unnoticed until it hurts" },
             ].map((stat) => (
               <div key={stat.value} className="gradient-border glass-card rounded-xl p-4 sm:p-6">
                 <p className="text-2xl font-bold bg-gradient-to-br from-orange-400 to-blue-400 bg-clip-text text-transparent sm:text-3xl">{stat.value}</p>
@@ -594,13 +642,26 @@ export default function WaitlistPage() {
             Ready to train smarter?
           </h2>
           <p className="mt-3 text-sm text-zinc-400 sm:mt-4 sm:text-base">
-            Be first in line when FreeForm Fitness launches. Early members get free access.
+            Sign up for free and start analysing your lifts today. No credit card required.
           </p>
-          <div className="mt-6 sm:mt-8">
-            <WaitlistForm id="bottom-form" />
+          <div className="mt-6 flex flex-col items-center gap-3 sm:mt-8 sm:flex-row sm:justify-center">
+            <Link
+              href="/register"
+              className="rounded-xl bg-orange-600 px-7 py-3.5 text-sm font-semibold text-white transition hover:bg-orange-500 animate-glow-pulse"
+            >
+              Create Free Account
+            </Link>
+            <Link
+              href="/pricing"
+              className="rounded-xl border border-zinc-700 bg-zinc-800/80 px-7 py-3.5 text-sm font-semibold text-zinc-100 transition hover:bg-zinc-700"
+            >
+              Compare Plans
+            </Link>
           </div>
         </div>
       </section>
+
+      <KinelyBar current="freeform" />
 
       {/* ── Footer ───────────────────────────────────────────────── */}
       <footer className="relative z-10 border-t border-zinc-800/40 py-6 text-center text-xs text-zinc-600 sm:py-8 sm:text-sm">

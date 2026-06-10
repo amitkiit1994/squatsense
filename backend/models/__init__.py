@@ -2,6 +2,7 @@
 
 from backend.models.analysis_job import AnalysisJob
 from backend.models.drill_completion import DrillCompletion
+from backend.models.gym_inquiry import GymInquiry
 from backend.models.league import DailyLog, LeaguePlayer, LeagueSession, LeagueTeam
 from backend.models.refresh_token import RefreshToken
 from backend.models.rep import Rep
@@ -13,6 +14,7 @@ __all__ = [
     "AnalysisJob",
     "DailyLog",
     "DrillCompletion",
+    "GymInquiry",
     "LeaguePlayer",
     "LeagueSession",
     "LeagueTeam",

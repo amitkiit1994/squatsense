@@ -46,6 +46,11 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     PASSWORD_RESET_EXPIRE_MINUTES: int = 15
 
+    # ── Admin ─────────────────────────────────────────────────────────
+    # Shared secret for the X-Admin-Key header on /api/v1/admin endpoints.
+    # Empty (default) = admin endpoints disabled (return 503).
+    ADMIN_API_KEY: str = ""
+
     # ── Registration allowlist ────────────────────────────────────────
     # Comma-separated emails allowed to register. Empty = open registration.
     ALLOWED_EMAILS: str = ""

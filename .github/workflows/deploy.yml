@@ -23,6 +23,10 @@ jobs:
           cache-dependency-path: requirements-backend.txt
       - name: Install dependencies
         run: pip install -r requirements-backend.txt
+      - name: Import smoke test (boot-crash gate)
+        run: python -c "from backend.main import app"
+        env:
+          JWT_SECRET_KEY: build-smoke-test-dummy-key-32chars-x
       - name: Run tests
         run: pytest backend/tests/ -v --tb=short
         env:

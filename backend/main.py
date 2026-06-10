@@ -124,6 +124,7 @@ def create_app() -> FastAPI:
 
     # Import and include routers
     from backend.routers import (
+        admin,
         analytics,
         analysis,
         auth,
@@ -153,6 +154,7 @@ def create_app() -> FastAPI:
     app.include_router(contact.router, prefix=api_prefix)
     app.include_router(league_auth.router, prefix=api_prefix)
     app.include_router(league.router, prefix=api_prefix)
+    app.include_router(admin.router, prefix=api_prefix)
 
     @app.get("/api/v1/health", tags=["ops"])
     async def health():

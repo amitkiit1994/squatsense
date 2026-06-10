@@ -195,6 +195,20 @@ async def create_player(db: AsyncSession):
 
 
 @pytest_asyncio.fixture(autouse=True)
+async def _reset_rate_limiter() -> AsyncGenerator[None, None]:
+    """Reset slowapi's in-memory counters before each test.
+
+    The whole suite runs well inside a single rate-limit window, so without
+    a reset, per-endpoint counters bleed across test files and trip limits
+    (e.g. 5/minute on team creation) depending on execution order.
+    """
+    from backend.rate_limit import limiter
+
+    limiter.reset()
+    yield
+
+
+@pytest_asyncio.fixture(autouse=True)
 async def _clear_kiosk_state() -> AsyncGenerator[None, None]:
     """Reset in-memory kiosk registries between tests."""
     yield

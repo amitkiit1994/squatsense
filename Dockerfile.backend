@@ -14,6 +14,14 @@ COPY backend/ ./backend/
 COPY alembic.ini .
 
 ENV PYTHONPATH=/app
+
+# Build-time import smoke test: import the app exactly as gunicorn does at
+# boot (backend.main:app) so the image build fails on import-time crashes
+# (e.g. Pydantic settings/validator errors) instead of crash-looping in prod.
+# JWT_SECRET_KEY is the only required-no-default setting; the dummy value
+# satisfies its >=32 char validator. All other settings have safe defaults.
+RUN JWT_SECRET_KEY=build-smoke-test-dummy-key-32chars-x python -c "from backend.main import app"
+
 ENV PORT=8000
 EXPOSE ${PORT}
 

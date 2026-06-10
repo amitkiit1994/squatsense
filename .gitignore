@@ -40,3 +40,4 @@ docs/
 .vercel
 .env*.local
 tsconfig.tsbuildinfo
+.admin-api-key

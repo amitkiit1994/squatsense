@@ -284,7 +284,7 @@ class GlobalStatsResponse(BaseModel):
 class TeamAnalyticsDay(BaseModel):
     """Session count for a single day in the 30-day activity window."""
 
-    date: date = Field(..., description="UTC calendar date")
+    day: date = Field(..., serialization_alias="date", description="UTC calendar date")
     sessions: int = Field(..., description="Sessions played on this date", ge=0)
 
 

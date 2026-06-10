@@ -333,7 +333,7 @@ async def get_team_analytics(
 
     sessions_per_day = [
         TeamAnalyticsDay(
-            date=window_start + timedelta(days=offset),
+            day=window_start + timedelta(days=offset),
             sessions=counts_by_day.get(window_start + timedelta(days=offset), 0),
         )
         for offset in range(30)

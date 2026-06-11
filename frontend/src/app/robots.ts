@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/dashboard", "/workout", "/settings", "/onboarding"],
+        disallow: ["/admin", "/dashboard", "/workout", "/settings", "/onboarding"],
       },
     ],
     sitemap: "https://freeformfitness.ai/sitemap.xml",

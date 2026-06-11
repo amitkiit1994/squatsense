@@ -42,6 +42,13 @@ class User(Base):
         Boolean, nullable=False, server_default="false"
     )
 
+    # Additive column (nullable so existing rows need no backfill).
+    # Set to true by the email OTP verification flow; verification is
+    # OPTIONAL for now — registration does not require it.
+    email_verified: Mapped[bool | None] = mapped_column(
+        Boolean, nullable=True, server_default="false"
+    )
+
     auth_provider: Mapped[str] = mapped_column(
         String(20), nullable=False, server_default="email"
     )

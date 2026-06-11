@@ -71,6 +71,25 @@ class ForgotPasswordRequest(BaseModel):
     email: EmailStr = Field(..., description="Account email address")
 
 
+class RequestOtpRequest(BaseModel):
+    """Payload for requesting an email verification code."""
+
+    email: EmailStr = Field(..., description="Email address to verify")
+
+
+class VerifyOtpRequest(BaseModel):
+    """Payload for verifying an email with a one-time code."""
+
+    email: EmailStr = Field(..., description="Email address being verified")
+    code: str = Field(
+        ...,
+        min_length=6,
+        max_length=6,
+        pattern=r"^\d{6}$",
+        description="6-digit verification code from the email",
+    )
+
+
 class ResetPasswordRequest(BaseModel):
     """Payload for resetting password with a token."""
 

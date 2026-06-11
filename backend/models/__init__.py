@@ -3,6 +3,7 @@
 from backend.models.analysis_job import AnalysisJob
 from backend.models.contact import ContactInquiry
 from backend.models.drill_completion import DrillCompletion
+from backend.models.email_otp import EmailOtp
 from backend.models.gym_inquiry import GymInquiry
 from backend.models.league import DailyLog, LeaguePlayer, LeagueSession, LeagueTeam
 from backend.models.payment_event import PaymentEvent
@@ -17,6 +18,7 @@ __all__ = [
     "ContactInquiry",
     "DailyLog",
     "DrillCompletion",
+    "EmailOtp",
     "GymInquiry",
     "LeaguePlayer",
     "LeagueSession",

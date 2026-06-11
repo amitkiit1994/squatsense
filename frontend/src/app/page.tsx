@@ -1,7 +1,68 @@
 "use client";
 
+import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import KinelyBar from "@/components/KinelyBar";
+
+function HeroVideo() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [muted, setMuted] = useState(true);
+
+  const toggleMute = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const nextMuted = !muted;
+    v.muted = nextMuted;
+    if (!nextMuted) {
+      v.volume = 1;
+      v.play().catch(() => {});
+    }
+    setMuted(nextMuted);
+  }, [muted]);
+
+  return (
+    <figure className="w-full">
+      <div className="relative overflow-hidden rounded-2xl border border-zinc-700/60 bg-zinc-900 shadow-[0_24px_80px_-24px_rgba(249,115,22,0.28)]">
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          disablePictureInPicture
+          poster="/hero-freeform-poster.jpg"
+          src="/hero-freeform.mp4"
+          className="block aspect-video w-full"
+          aria-label="FreeForm Fitness in motion — a phone camera tracks a squat with a live pose skeleton, every rep gets a form score across depth, stability, symmetry and tempo, and a session trend shows fatigue building. Sample data."
+        />
+        <button
+          type="button"
+          onClick={toggleMute}
+          aria-pressed={!muted}
+          aria-label={muted ? "Unmute hero video" : "Mute hero video"}
+          className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-zinc-950/80 px-3 py-1.5 text-xs font-semibold text-zinc-100 backdrop-blur transition hover:border-white/40 hover:bg-zinc-950/95"
+        >
+          {muted ? (
+            <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
+              <path d="M11 5 6.5 9H3v6h3.5L11 19V5Z" fill="currentColor" />
+              <path d="m16 9 5 6m0-6-5 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
+              <path d="M11 5 6.5 9H3v6h3.5L11 19V5Z" fill="currentColor" />
+              <path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          )}
+          {muted ? "Unmute" : "Mute"}
+        </button>
+      </div>
+      <figcaption className="mt-2 text-xs text-zinc-500">
+        Sample data — scored in real time from a single phone camera.
+      </figcaption>
+    </figure>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /*  Helper components                                                 */
@@ -86,8 +147,11 @@ export default function HomePage() {
 
       {/* ── Navigation ──────────────────────────────────────────── */}
       <nav className="relative z-20 mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2">
-          <img src="/logo.png" alt="FreeForm Fitness" className="h-8 w-auto sm:h-10" />
+        <Link href="/" className="flex items-center gap-2.5">
+          <img src="/logo-mark.png" alt="FreeForm Fitness" className="h-8 w-8 sm:h-9 sm:w-9" />
+          <span className="hidden whitespace-nowrap text-sm font-bold tracking-tight text-zinc-100 sm:inline sm:text-base">
+            FreeForm Fitness
+          </span>
         </Link>
         <div className="flex items-center gap-3 text-sm sm:gap-4">
           <Link href="/pricing" className="text-zinc-400 hover:text-zinc-200 transition-colors">
@@ -98,13 +162,13 @@ export default function HomePage() {
           </Link>
           <Link
             href="/login"
-            className="text-zinc-400 hover:text-zinc-200 transition-colors"
+            className="whitespace-nowrap text-zinc-400 hover:text-zinc-200 transition-colors"
           >
             Sign in
           </Link>
           <Link
             href="/register"
-            className="rounded-lg bg-orange-600 px-3.5 py-1.5 text-sm font-semibold text-white transition hover:bg-orange-500"
+            className="whitespace-nowrap rounded-lg bg-orange-600 px-3.5 py-1.5 text-sm font-semibold text-white transition hover:bg-orange-500"
           >
             Sign up
           </Link>
@@ -119,10 +183,15 @@ export default function HomePage() {
       </div>
 
       {/* ── Hero ─────────────────────────────────────────────────── */}
-      <section className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-4 pt-4 pb-16 text-center sm:px-6 sm:pt-8 sm:pb-28 md:pt-12">
-        <img src="/logo.png" alt="FreeForm Fitness" className="animate-fade-in-up mb-0 h-36 w-auto sm:h-60" />
+      <section className="relative z-10 mx-auto flex max-w-4xl flex-col items-center px-4 pt-4 pb-16 text-center sm:px-6 sm:pt-7 sm:pb-28">
+        <div className="animate-fade-in-up mb-3 flex items-center gap-3 sm:mb-4">
+          <img src="/logo-mark.png" alt="" aria-hidden="true" className="h-12 w-12 sm:h-16 sm:w-16" />
+          <span className="text-2xl font-bold tracking-tight text-zinc-50 sm:text-3xl">
+            FreeForm Fitness
+          </span>
+        </div>
 
-        <div className="animate-fade-in-up mb-4 sm:mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 text-xs sm:text-sm sm:px-4 sm:py-1.5 text-emerald-300 backdrop-blur-sm">
+        <div className="animate-fade-in-up mb-3 sm:mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 text-xs sm:text-sm sm:px-4 sm:py-1.5 text-emerald-300 backdrop-blur-sm">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
@@ -130,7 +199,7 @@ export default function HomePage() {
           Now in Beta
         </div>
 
-        <h1 className="animate-fade-in-up delay-100 text-3xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl md:text-7xl">
+        <h1 className="animate-fade-in-up delay-100 text-3xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl md:text-6xl">
           Measure the Movement.
           <br />
           <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-cyan-400 bg-clip-text text-transparent">
@@ -138,25 +207,28 @@ export default function HomePage() {
           </span>
         </h1>
 
-        <p className="animate-fade-in-up delay-200 mt-4 max-w-xl text-sm leading-relaxed text-zinc-400 sm:mt-6 sm:text-lg md:text-xl">
-          FreeForm Fitness uses computer vision to analyse your lifts in real-time — tracking
-          joint angles, range of motion, bar path, and fatigue across squats, deadlifts,
-          bench press, overhead press, and more. No wearables. No hardware. Just your phone camera.
+        <p className="animate-fade-in-up delay-200 mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400 sm:mt-4 sm:text-base md:text-lg">
+          Real-time biomechanical analysis of your lifts — joint angles, bar path,
+          per-rep form scores, and fatigue. No wearables. No hardware. Just your phone camera.
         </p>
 
-        <div className="animate-fade-in-up delay-300 mt-6 flex flex-col items-center gap-3 w-full max-w-md sm:mt-10">
+        <div className="animate-fade-in-up delay-200 mt-5 w-full max-w-3xl sm:mt-6">
+          <HeroVideo />
+        </div>
+
+        <div className="animate-fade-in-up delay-300 mt-6 flex w-full max-w-md flex-col items-center gap-3 sm:mt-8">
           <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
               href="/register"
               className="rounded-xl bg-orange-600 px-7 py-3.5 text-center text-sm font-semibold text-white transition hover:bg-orange-500 animate-glow-pulse"
             >
-              Start Free
+              Join Beta
             </Link>
             <Link
-              href="/pricing"
+              href="/for-gyms"
               className="rounded-xl border border-zinc-700 bg-zinc-800/80 px-7 py-3.5 text-center text-sm font-semibold text-zinc-100 transition hover:bg-zinc-700"
             >
-              See Pricing
+              For Gyms
             </Link>
           </div>
           <p className="mt-1 text-xs text-zinc-500">

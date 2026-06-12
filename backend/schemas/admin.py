@@ -4,9 +4,22 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+# Pipeline stages for gym inquiries, in funnel order. Kept as a plain tuple
+# (not a DB enum) so adding a stage stays a code-only change.
+GYM_PIPELINE_STAGES: tuple[str, ...] = (
+    "new",
+    "contacted",
+    "demo",
+    "trial",
+    "won",
+    "lost",
+)
+
+GymStage = Literal["new", "contacted", "demo", "trial", "won", "lost"]
 
 
 class LeadCounts(BaseModel):
@@ -36,7 +49,39 @@ class GymInquiryListItem(BaseModel):
         default=None, description="Number of gym locations"
     )
     message: Optional[str] = Field(default=None, description="Additional message")
+    stage: GymStage = Field(..., description="Pipeline stage")
+    next_action: Optional[str] = Field(
+        default=None, description="Free-text next action for this lead"
+    )
+    stage_updated_at: Optional[datetime] = Field(
+        default=None, description="When the stage was last changed"
+    )
     created_at: datetime = Field(..., description="Submission timestamp")
+
+
+class GymInquiryUpdateRequest(BaseModel):
+    """Partial update for a gym inquiry's pipeline fields.
+
+    At least one of ``stage`` / ``next_action`` must be provided.
+    ``next_action`` may be explicitly null to clear it.
+    """
+
+    stage: Optional[GymStage] = Field(
+        default=None, description="New pipeline stage"
+    )
+    next_action: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Next action note (null clears it)",
+    )
+
+    @model_validator(mode="after")
+    def _require_at_least_one_field(self) -> "GymInquiryUpdateRequest":
+        if not self.model_fields_set:
+            raise ValueError(
+                "Provide at least one of 'stage' or 'next_action'."
+            )
+        return self
 
 
 class ContactInquiryListItem(BaseModel):
@@ -80,6 +125,13 @@ class AdminLeadsResponse(BaseModel):
     """Lead counts plus the latest inquiries, newest first."""
 
     counts: LeadCounts = Field(..., description="Total counts per lead source")
+    stage_counts: dict[str, int] = Field(
+        ...,
+        description=(
+            "Gym inquiry counts per pipeline stage; always contains all six "
+            "stages (new, contacted, demo, trial, won, lost)"
+        ),
+    )
     gym_inquiries: list[GymInquiryListItem] = Field(
         ..., description="Latest 50 gym inquiries, newest first"
     )

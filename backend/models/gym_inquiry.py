@@ -26,6 +26,16 @@ class GymInquiry(Base):
     city: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     num_locations: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Pipeline CRM fields: stage values are new|contacted|demo|trial|won|lost
+    # (validated at the schema layer, not as a DB enum, to keep migrations
+    # additive).
+    stage: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="new"
+    )
+    next_action: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    stage_updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

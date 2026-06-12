@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 import secrets
+import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from sqlalchemy import func, select
@@ -18,9 +20,11 @@ from backend.models.user import User
 from backend.models.waitlist_email import WaitlistEmail
 from backend.rate_limit import limiter
 from backend.schemas.admin import (
+    GYM_PIPELINE_STAGES,
     AdminLeadsResponse,
     ContactInquiryListItem,
     GymInquiryListItem,
+    GymInquiryUpdateRequest,
     LeadCounts,
     PaymentEventListItem,
 )
@@ -58,7 +62,27 @@ async def _require_admin_key(
         )
 
 
-# ── Endpoint ────────────────────────────────────────────────────────────────
+# ── Helpers ─────────────────────────────────────────────────────────────────
+
+def _gym_inquiry_item(row: GymInquiry) -> GymInquiryListItem:
+    """Map a GymInquiry ORM row to its response schema."""
+    return GymInquiryListItem(
+        id=row.id,
+        gym_name=row.gym_name,
+        contact_name=row.contact_name,
+        email=row.email,
+        phone=row.phone,
+        city=row.city,
+        num_locations=row.num_locations,
+        message=row.message,
+        stage=row.stage,
+        next_action=row.next_action,
+        stage_updated_at=row.stage_updated_at,
+        created_at=row.created_at,
+    )
+
+
+# ── Endpoints ───────────────────────────────────────────────────────────────
 
 @router.get(
     "/leads",
@@ -87,6 +111,15 @@ async def get_leads(
     payment_event_count = (
         await db.execute(select(func.count()).select_from(PaymentEvent))
     ).scalar_one()
+
+    stage_rows = (
+        await db.execute(
+            select(GymInquiry.stage, func.count()).group_by(GymInquiry.stage)
+        )
+    ).all()
+    stage_counts: dict[str, int] = {stage: 0 for stage in GYM_PIPELINE_STAGES}
+    for stage, count in stage_rows:
+        stage_counts[stage] = count
 
     gym_rows = (
         (
@@ -139,20 +172,8 @@ async def get_leads(
             users=user_count,
             payment_events=payment_event_count,
         ),
-        gym_inquiries=[
-            GymInquiryListItem(
-                id=row.id,
-                gym_name=row.gym_name,
-                contact_name=row.contact_name,
-                email=row.email,
-                phone=row.phone,
-                city=row.city,
-                num_locations=row.num_locations,
-                message=row.message,
-                created_at=row.created_at,
-            )
-            for row in gym_rows
-        ],
+        stage_counts=stage_counts,
+        gym_inquiries=[_gym_inquiry_item(row) for row in gym_rows],
         contact_inquiries=[
             ContactInquiryListItem(
                 id=row.id,
@@ -183,3 +204,48 @@ async def get_leads(
             for row in payment_event_rows
         ],
     )
+
+
+@router.patch(
+    "/leads/gym/{inquiry_id}",
+    response_model=GymInquiryListItem,
+    summary="Update a gym inquiry's pipeline stage / next action",
+    dependencies=[Depends(_require_admin_key)],
+)
+@limiter.limit("60/minute")
+async def update_gym_inquiry(
+    request: Request,
+    inquiry_id: uuid.UUID,
+    payload: GymInquiryUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+) -> GymInquiryListItem:
+    """Partially update pipeline fields on a gym inquiry.
+
+    ``stage`` transitions also bump ``stage_updated_at``. ``next_action``
+    may be set to null to clear it. Returns the updated row.
+    """
+    row = (
+        await db.execute(select(GymInquiry).where(GymInquiry.id == inquiry_id))
+    ).scalar_one_or_none()
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Gym inquiry not found",
+        )
+
+    if payload.stage is not None and payload.stage != row.stage:
+        row.stage = payload.stage
+        row.stage_updated_at = datetime.now(timezone.utc)
+    if "next_action" in payload.model_fields_set:
+        row.next_action = payload.next_action
+
+    await db.commit()
+    await db.refresh(row)
+
+    logger.info(
+        "[ADMIN] Gym inquiry %s updated: stage=%s next_action=%s",
+        row.id,
+        row.stage,
+        row.next_action,
+    )
+    return _gym_inquiry_item(row)

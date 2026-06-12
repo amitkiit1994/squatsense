@@ -41,3 +41,4 @@ docs/
 .env*.local
 tsconfig.tsbuildinfo
 .admin-api-key
+.internal-api-key
